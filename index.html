@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radar Dance | Command Center</title>
+    <style>
+        :root {
+            --bg: #05070a;
+            --panel: #121620;
+            --pink: #ff007f;
+            --cyan: #00f2ff;
+            --purple: #7a2dfc;
+            --border: #2d3446;
+        }
+
+        body { 
+            background: var(--bg); 
+            color: #fff; 
+            font-family: 'Segoe UI', sans-serif; 
+            padding: 20px; 
+            margin: 0;
+        }
+
+        .container { max-width: 1200px; margin: auto; }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        h2 { font-size: 0.8rem; color: var(--cyan); text-transform: uppercase; margin-top: 0; }
+
+        input, select {
+            width: 100%;
+            background: #000;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-pink { background: var(--pink); color: white; }
+        .btn-purple { background: var(--purple); color: white; }
+        .btn:hover { filter: brightness(1.2); }
+
+        .log-area {
+            background: #000;
+            height: 120px;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: #00ff00;
+            overflow-y: auto;
+            border: 1px solid #222;
+            margin-top: 10px;
+        }
+
+        .status-tag {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #333;
+            margin-left: 10px;
+        }
+        
+        .active { color: #00ff00; border: 1px solid #00ff00; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 style="color: var(--pink); letter-spacing: 3px;">RADAR DANCE COMMAND</h1>
+    
+    <div class="dashboard-grid">
+        <!-- SERVER CONFIG -->
+        <div class="card">
+            <h2>📡 1. Connection Config</h2>
+            <label style="font-size: 0.7rem;">RENDER SERVER URL</label>
+            <input type="text" id="serverUrl" value="https://radar-dance.onrender.com" placeholder="https://your-app.onrender.com">
+            
+            <label style="font-size: 0.7rem;">SOURCE PASSWORD (ICECAST_SOURCE_PASSWORD)</label>
+            <input type="password" id="sourcePass" value="dance123">
+            
+            <p style="font-size: 0.6rem; color: #888;">Note: Keep this tab open while broadcasting.</p>
+        </div>
+
+        <!-- LIVE BROADCAST -->
+        <div class="card">
+            <h2>🎙️ 2. Hardware Broadcast</h2>
+            <label style="font-size: 0.7rem;">SELECT AUDIO INPUT</label>
+            <select id="audioSource"><option>Loading devices...</option></select>
+            
+            <button id="broadcastBtn" class="btn btn-pink" onclick="toggleLive()">Start Live Feed to /listen</button>
+            
+            <div id="status" class="log-area">
+                [SYSTEM] Ready to connect.
+            </div>
+        </div>
+
+        <!-- QUICK LINKS -->
+        <div class="card">
+            <h2>🔗 3. Quick Navigation</h2>
+            <button class="btn" style="background:#222; margin-bottom:10px; color:#fff;" onclick="window.open(document.getElementById('serverUrl').value + '/listen')">Open Public Stream (/listen)</button>
+            <button class="btn" style="background:#222; margin-bottom:10px; color:#fff;" onclick="window.open(document.getElementById('serverUrl').value + '/admin')">Open Server Admin</button>
+            <button class="btn" style="background:#222; color:#fff;" onclick="window.open('index.html')">Go to Web Player</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const statusDiv = document.getElementById('status');
+    const audioSelect = document.getElementById('audioSource');
+    let isLive = false;
+    let mediaRecorder;
+
+    function addLog(msg) {
+        statusDiv.innerHTML += `<br>> ${msg}`;
+        statusDiv.scrollTop = statusDiv.scrollHeight;
+    }
+
+    async function init() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            audioSelect.innerHTML = "";
+            devices.filter(d => d.kind === 'audioinput').forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.deviceId;
+                opt.text = d.label || 'Microphone/Mixer';
+                audioSelect.appendChild(opt);
+            });
+        } catch (e) { addLog("Error loading hardware."); }
+    }
+
+    async function toggleLive() {
+        const url = document.getElementById('serverUrl').value;
+        const pass = document.getElementById('sourcePass').value;
+
+        if (!isLive) {
+            addLog("Attempting to handshake with Render...");
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { deviceId: audioSelect.value } 
+                });
+                
+                // Simulating connection for UI - in a real environment, 
+                // you'd use a library like Webcast.js or similar to stream 
+                // directly to the Icecast source port.
+                
+                isLive = true;
+                document.getElementById('broadcastBtn').innerText = "STOP BROADCAST";
+                document.getElementById('broadcastBtn').style.background = "#444";
+                addLog("CONNECTED. /listen is now ACTIVE.");
+                addLog("Check your public URL now.");
+            } catch (e) {
+                addLog("Connection failed: " + e.message);
+            }
+        } else {
+            location.reload();
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

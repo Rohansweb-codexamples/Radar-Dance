@@ -13,7 +13,7 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Multer Configuration
+// Optimized Multer for Multiple Files
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => {
@@ -21,122 +21,192 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + '-' + safeName);
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
+});
 
 // Global Station State
 let playlist = [
-    { id: 'initial-01', title: "RADAR WELCOME SIGNAL", url: "https://radar-dance-radio.onrender.com/", isLocal: false }
+    { id: 'initial-01', title: "RADAR SYSTEM ONLINE", url: "https://radar-dance-radio.onrender.com/", isLocal: false }
 ];
 
 let broadcastStatus = {
-    nowPlaying: "RADAR ONLINE",
+    isLive: true,
+    isDjLinked: false,
+    nowPlaying: "RADAR STANDBY",
     currentTrackIndex: 0,
     startTime: Date.now(),
-    listeners: Math.floor(Math.random() * 50) + 10,
-    status: "LIVE"
+    listeners: Math.floor(Math.random() * 20) + 5
 };
 
 app.use(express.json());
 app.use('/uploads', express.static(uploadDir));
 
-// --- ADVANCED LISTENER UI ---
+// --- ULTRA-PREMIUM LISTENER UI ---
 const listenerHTML = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RADAR // LIVE</title>
+    <title>RADAR // GLOBAL TRANSMISSION</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&family=Inter:wght@400;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&family=Inter:wght@300;900&display=swap" rel="stylesheet">
     <style>
-        :root { --pink: #ff007f; --black: #05070a; --white: #f0f0f5; }
-        body { background-color: var(--black); color: var(--white); font-family: 'Inter', sans-serif; overflow: hidden; }
+        :root { --pink: #ff007f; --black: #020203; --navy: #0a0c12; --white: #f0f0f5; }
+        body { background-color: var(--black); color: var(--white); font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .font-sync { font-family: 'Syncopate', sans-serif; }
         .text-pink { color: var(--pink); }
         .bg-pink { background-color: var(--pink); }
-        .glass { background: rgba(10, 12, 18, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255, 0, 127, 0.2); }
+        
+        /* Visualizer Animation */
+        .bar { width: 4px; background: var(--pink); border-radius: 2px; animation: bounce 1s ease-in-out infinite; }
+        @keyframes bounce { 
+            0%, 100% { height: 10px; opacity: 0.3; } 
+            50% { height: 40px; opacity: 1; } 
+        }
+        .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 0, 127, 0.15); }
+        .on-air-pulse { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     </style>
 </head>
-<body class="h-screen flex flex-col justify-between p-8 md:p-16">
-    <header class="flex justify-between items-start">
-        <h1 class="text-6xl md:text-8xl font-black font-sync italic tracking-tighter uppercase leading-none">Radar<span class="text-pink">.</span></h1>
-        <div class="text-right border-l-2 border-pink pl-4">
-            <div class="text-[10px] font-black text-pink uppercase tracking-widest">Signal Status</div>
-            <div class="font-mono text-xl font-bold uppercase italic">Encrypted // Live</div>
+<body class="p-6 md:p-12">
+    <nav class="flex justify-between items-center mb-12">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-pink rounded-full flex items-center justify-center font-black italic text-black">R</div>
+            <h1 class="font-sync text-2xl tracking-tighter uppercase italic">Radar<span class="text-pink">.</span></h1>
         </div>
-    </header>
+        <div id="status-badge" class="flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
+            <span class="w-2 h-2 bg-green-500 rounded-full on-air-pulse"></span>
+            <span class="text-[10px] font-black uppercase tracking-[0.2em]">Live Signal</span>
+        </div>
+    </nav>
 
-    <main class="flex flex-col items-center">
-        <div class="w-full max-w-4xl glass p-12 rounded-sm relative overflow-hidden shadow-2xl">
-            <div class="mb-16">
-                <p class="text-[10px] font-bold uppercase text-gray-500 tracking-[0.3em] mb-2">Currently Transmitting</p>
-                <h2 id="track-title" class="text-4xl md:text-6xl font-black italic uppercase tracking-tight leading-tight">Syncing Signal...</h2>
+    <main class="flex-1 flex flex-col items-center justify-center text-center">
+        <div class="w-full max-w-3xl space-y-12">
+            <!-- Frequency Header -->
+            <div class="space-y-4">
+                <p class="text-[10px] font-bold text-pink uppercase tracking-[0.5em]">Global Transmission Mode</p>
+                <h2 id="track-title" class="text-5xl md:text-8xl font-black italic uppercase leading-none tracking-tighter">--:--</h2>
             </div>
-            <div class="flex flex-col md:flex-row items-center gap-12">
-                <button id="playBtn" class="w-32 h-32 flex items-center justify-center bg-pink rounded-full hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,0,127,0.4)]">
-                    <svg id="playIcon" class="w-12 h-12 text-white fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                </button>
-                <div class="flex-1 w-full">
-                    <div class="flex justify-between text-[10px] font-black uppercase text-gray-500 mb-4 tracking-widest">
-                        <span>Volume</span>
-                        <span id="vol-display">70%</span>
+
+            <!-- Visualizer Area -->
+            <div class="flex items-center justify-center gap-1 h-12 opacity-50">
+                <div class="bar" style="animation-delay: 0.1s"></div>
+                <div class="bar" style="animation-delay: 0.3s"></div>
+                <div class="bar" style="animation-delay: 0.2s"></div>
+                <div class="bar" style="animation-delay: 0.5s"></div>
+                <div class="bar" style="animation-delay: 0.4s"></div>
+            </div>
+
+            <!-- Player Panel -->
+            <div class="glass-panel p-10 rounded-3xl shadow-2xl relative group">
+                <div class="flex flex-col md:flex-row items-center gap-12">
+                    <button id="playBtn" class="w-28 h-28 bg-white text-black rounded-full flex items-center justify-center hover:bg-pink hover:text-white transition-all transform active:scale-95 shadow-xl">
+                        <svg id="playIcon" class="w-10 h-10 fill-current translate-x-1" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                    
+                    <div class="flex-1 w-full space-y-4">
+                        <div class="flex justify-between items-end text-[10px] font-black uppercase text-gray-500 tracking-widest">
+                            <span>System Gain</span>
+                            <span id="vol-text">70%</span>
+                        </div>
+                        <input type="range" id="vol" min="0" max="1" step="0.01" value="0.7" class="w-full accent-pink bg-white/10 h-1 appearance-none cursor-pointer rounded-full">
                     </div>
-                    <input type="range" id="vol" min="0" max="1" step="0.01" value="0.7" class="w-full accent-pink bg-gray-800 h-1 appearance-none cursor-pointer">
                 </div>
             </div>
         </div>
     </main>
 
-    <footer class="flex justify-between items-end">
-        <div>
-            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Online Nodes</p>
-            <p id="listener-count" class="text-2xl font-black italic">--</p>
+    <footer class="flex justify-between items-end text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+        <div class="flex gap-8">
+            <div>
+                <span class="block text-pink mb-1">Listeners</span>
+                <span id="listener-count" class="text-xl text-white font-black italic">--</span>
+            </div>
+            <div>
+                <span class="block text-pink mb-1">UTC Time</span>
+                <span id="utc-clock" class="text-xl text-white font-black italic">00:00:00</span>
+            </div>
         </div>
         <div class="text-right">
-            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">System</p>
-            <p class="text-lg font-bold italic uppercase">Broadcast Control Unit</p>
+            <span class="block text-pink mb-1">Engine</span>
+            <span class="text-xl text-white font-black italic tracking-tighter">BCU-ENTERPRISE</span>
         </div>
     </footer>
 
     <audio id="audio" crossOrigin="anonymous"></audio>
+
     <script>
         const audio = document.getElementById('audio');
         const playBtn = document.getElementById('playBtn');
         const trackTitle = document.getElementById('track-title');
         const listenerCount = document.getElementById('listener-count');
-        let currentSync = 0;
+        const statusBadge = document.getElementById('status-badge');
+        let serverStartTime = 0;
 
-        async function update() {
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('utc-clock').innerText = now.toISOString().substr(11, 8);
+        }
+        setInterval(updateClock, 1000);
+
+        async function syncWithServer() {
             try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
-                trackTitle.innerText = data.nowPlaying;
+                
+                trackTitle.innerText = data.isDjLinked ? "LIVE DJ SET // LINKED" : data.nowPlaying;
                 listenerCount.innerText = data.listeners.toString().padStart(3, '0');
-                if (currentSync !== data.startTime) {
-                    currentSync = data.startTime;
+                
+                if (!data.isLive) {
+                    statusBadge.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full"></span><span class="text-[10px] font-black uppercase">Off Air</span>';
+                    audio.pause();
+                    return;
+                }
+
+                statusBadge.innerHTML = '<span class="w-2 h-2 bg-green-500 rounded-full on-air-pulse"></span><span class="text-[10px] font-black uppercase">Live Signal</span>';
+
+                if (serverStartTime !== data.startTime) {
+                    serverStartTime = data.startTime;
+                    const elapsedSeconds = (Date.now() - data.startTime) / 1000;
                     const playing = !audio.paused;
+                    
                     audio.src = "/stream?t=" + data.startTime;
+                    audio.load();
+                    
+                    // The magic sync: seek to where the server is
+                    audio.oncanplay = () => {
+                        if (audio.duration && elapsedSeconds < audio.duration) {
+                            audio.currentTime = elapsedSeconds;
+                        }
+                    };
+
                     if(playing) audio.play().catch(() => {});
                 }
             } catch(e) {}
         }
-        setInterval(update, 3000);
-        update();
+
+        setInterval(syncWithServer, 5000);
+        syncWithServer();
 
         playBtn.onclick = () => {
             if(!audio.src) audio.src = "/stream?t=" + Date.now();
             if (audio.paused) {
                 audio.play();
                 document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+                document.getElementById('playIcon').classList.remove('translate-x-1');
             } else {
                 audio.pause();
                 document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+                document.getElementById('playIcon').classList.add('translate-x-1');
             }
         };
+
         document.getElementById('vol').oninput = (e) => {
             audio.volume = e.target.value;
-            document.getElementById('vol-display').innerText = Math.round(e.target.value * 100) + "%";
+            document.getElementById('vol-text').innerText = Math.round(e.target.value * 100) + "%";
         };
     </script>
 </body>
@@ -148,125 +218,104 @@ const adminHTML = `
 <!DOCTYPE html>
 <html>
 <head>
-    <title>RADAR // ADMIN</title>
+    <title>RADAR // COMMAND</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --pink: #ff007f; --black: #05070a; --white: #f0f0f5; }
-        body { background-color: var(--white); color: var(--black); font-family: 'Inter', sans-serif; }
-        .card { background: white; border: 4px solid var(--black); box-shadow: 12px 12px 0px var(--pink); transition: all 0.2s; }
-        .card:hover { transform: translate(-2px, -2px); box-shadow: 16px 16px 0px var(--black); }
-        .btn-black { background: var(--black); color: white; font-weight: 900; text-transform: uppercase; font-style: italic; }
-        .btn-black:hover { background: var(--pink); }
+        body { background: #f8f9fb; color: #05070a; font-family: 'Inter', sans-serif; }
+        .card { background: white; border: 4px solid #05070a; box-shadow: 12px 12px 0px #ff007f; }
+        .toggle-active { background: #ff007f; color: white; }
     </style>
 </head>
 <body class="p-8 md:p-12">
     <div class="max-w-7xl mx-auto">
-        <header class="flex justify-between items-end mb-16 border-b-8 border-black pb-8">
-            <div>
-                <h1 class="text-7xl font-black italic uppercase tracking-tighter leading-none">Radar<span class="text-pink">.</span> Control</h1>
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-[0.3em] mt-4">Broadcast Administration // Version 3.0</p>
-            </div>
-            <div class="text-right">
-                <div class="text-[10px] font-black text-gray-400 uppercase">System Status</div>
-                <div class="text-4xl font-black italic text-green-500">READY</div>
+        <header class="flex justify-between items-end mb-12 border-b-8 border-black pb-8">
+            <h1 class="text-6xl font-black italic uppercase tracking-tighter">Radar Control</h1>
+            <div class="flex gap-4">
+                <button id="toggle-live" onclick="toggleStatus('live')" class="px-6 py-2 border-4 border-black font-black uppercase text-xs">Station On/Off</button>
+                <button id="toggle-dj" onclick="toggleStatus('dj')" class="px-6 py-2 border-4 border-black font-black uppercase text-xs">Link DJ Set</button>
             </div>
         </header>
 
         <div class="grid lg:grid-cols-12 gap-12">
-            <!-- Left: Queue Manager -->
-            <div class="lg:col-span-7 space-y-8">
-                <div class="card p-8">
+            <!-- Queue -->
+            <div class="lg:col-span-8">
+                <div class="card p-8 min-h-[500px]">
                     <div class="flex justify-between items-center mb-8">
-                        <h2 class="text-3xl font-black uppercase italic">Active Queue</h2>
-                        <button onclick="clearQueue()" class="text-[10px] font-black border-2 border-black px-4 py-1 hover:bg-black hover:text-white uppercase transition-all">Flush System</button>
+                        <h2 class="text-3xl font-black uppercase italic tracking-tight">Broadcast Queue</h2>
+                        <button onclick="clearAll()" class="text-[10px] font-bold text-red-500 uppercase">Clear All</button>
                     </div>
-                    <div id="playlist-list" class="space-y-3">
-                        <!-- Items injected here -->
-                    </div>
+                    <div id="playlist-list" class="space-y-4"></div>
                 </div>
             </div>
 
-            <!-- Right: Tools -->
-            <div class="lg:col-span-5 space-y-8">
-                <!-- FILE UPLOAD CARD -->
-                <div class="card p-8 bg-black text-white shadow-[12px_12px_0px_#222]">
-                    <h2 class="text-2xl font-black mb-6 uppercase text-pink italic tracking-widest">Master Upload</h2>
-                    <div class="border-2 border-dashed border-gray-700 p-8 text-center hover:border-pink transition-all cursor-pointer group" onclick="document.getElementById('file-input').click()">
-                        <input type="file" id="file-input" multiple accept="audio/*" class="hidden" onchange="uploadFiles(this.files)">
-                        <div class="text-pink mb-4">
-                            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                        </div>
-                        <p class="text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-white">Push Audio Files to Server</p>
-                    </div>
-                    <div id="up-status" class="mt-4 text-[10px] font-black uppercase text-pink text-center"></div>
+            <!-- Upload Tools -->
+            <div class="lg:col-span-4 space-y-8">
+                <div class="card p-8 bg-black text-white">
+                    <h2 class="text-xl font-black mb-6 uppercase text-pink-500 italic">Bulk Audio Upload</h2>
+                    <input type="file" id="file-input" multiple class="hidden" onchange="handleUpload(this.files)">
+                    <button onclick="document.getElementById('file-input').click()" class="w-full bg-pink-500 py-6 font-black uppercase text-xs tracking-widest mb-4">Select Files</button>
+                    <div id="up-progress" class="text-[10px] uppercase font-bold text-pink-500 text-center"></div>
                 </div>
 
-                <!-- BULK URL CARD -->
                 <div class="card p-8">
-                    <h2 class="text-xl font-black mb-4 uppercase italic">Bulk Ingest</h2>
-                    <p class="text-[9px] font-bold text-gray-400 uppercase mb-4 tracking-widest">Format: URL | TITLE</p>
-                    <textarea id="bulk-urls" rows="4" class="w-full bg-gray-50 border-2 border-black p-4 text-xs font-mono mb-4 outline-none focus:ring-2 focus:ring-pink" placeholder="https://stream.com/live | Night Mix"></textarea>
-                    <button onclick="addUrls()" class="w-full btn-black py-4 text-sm tracking-[0.2em]">Add to Playlist</button>
+                    <h2 class="text-xs font-black uppercase mb-4 text-gray-400">Stream Links</h2>
+                    <textarea id="bulk-urls" rows="3" class="w-full bg-gray-100 p-4 text-xs mb-4 outline-none border-2 border-transparent focus:border-pink-500" placeholder="URL | Title"></textarea>
+                    <button onclick="addUrls()" class="w-full bg-black text-white py-4 font-black uppercase text-xs">Add Streams</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        async function fetchState() {
+        async function fetchAdminState() {
             const res = await fetch('/api/status');
             const status = await res.json();
             
+            document.getElementById('toggle-live').className = \`px-6 py-2 border-4 border-black font-black uppercase text-xs \${status.isLive ? 'bg-green-500' : 'bg-red-500'}\`;
+            document.getElementById('toggle-dj').className = \`px-6 py-2 border-4 border-black font-black uppercase text-xs \${status.isDjLinked ? 'bg-pink-500 text-white' : ''}\`;
+
             const pRes = await fetch('/api/playlist');
             const playlist = await pRes.json();
-            
             const list = document.getElementById('playlist-list');
-            if(playlist.length === 0) {
-                list.innerHTML = '<div class="p-12 text-center text-gray-300 font-black uppercase italic">No Signal Found</div>';
-                return;
-            }
-
+            
             list.innerHTML = playlist.map((t, i) => \`
-                <div class="flex items-center justify-between p-5 border-2 border-black group \${status.currentTrackIndex === i ? 'bg-pink/5 border-pink' : 'hover:bg-gray-50'}">
-                    <div class="flex items-center gap-6">
-                        <span class="text-xl font-black \${status.currentTrackIndex === i ? 'text-pink' : 'text-gray-200'} italic">\${(i+1).toString().padStart(2, '0')}</span>
-                        <div>
-                            <div class="font-black uppercase text-lg italic tracking-tight">\${t.title}</div>
-                            <div class="text-[9px] font-bold text-gray-400 uppercase">\${t.isLocal ? 'Local File' : 'Stream Ingest'}</div>
-                        </div>
+                <div class="flex items-center justify-between p-4 border-2 border-black group \${status.currentTrackIndex === i ? 'border-pink-500 bg-pink-50' : ''}">
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm font-black \${status.currentTrackIndex === i ? 'text-pink-500' : 'text-gray-300'}">\${(i+1).toString().padStart(2, '0')}</span>
+                        <div class="font-black uppercase text-sm">\${t.title}</div>
                     </div>
                     <div class="flex gap-2">
-                         \${status.currentTrackIndex === i ? 
-                            '<span class="text-[10px] font-black bg-pink text-white px-4 py-2 uppercase italic">ON AIR</span>' : 
-                            \`<button onclick="playNow(\${i})" class="btn-black text-[10px] px-4 py-2">LIVE</button>\`}
-                        <button onclick="deleteTrack(\${i})" class="text-[10px] font-black border border-black px-3 py-2 hover:bg-red-500 hover:text-white uppercase transition-all">X</button>
+                        <button onclick="playTrack(\${i})" class="bg-black text-white px-4 py-1 text-[10px] font-black uppercase italic hover:bg-pink-500">Go Live</button>
+                        <button onclick="deleteTrack(\${i})" class="text-[10px] font-black border border-black px-2 py-1 hover:bg-black hover:text-white transition-all">X</button>
                     </div>
                 </div>
             \`).join('');
         }
 
-        async function uploadFiles(files) {
-            if(!files.length) return;
-            const status = document.getElementById('up-status');
-            status.innerText = "Transmitting Data...";
-            
+        async function handleUpload(files) {
+            const status = document.getElementById('up-progress');
+            status.innerText = "Transmitting bulk data...";
             const fd = new FormData();
             for(let f of files) fd.append('audioFiles', f);
-            
-            try {
-                await fetch('/api/upload', { method: 'POST', body: fd });
-                status.innerText = "Signal Locked.";
-                setTimeout(() => status.innerText = "", 3000);
-                fetchState();
-            } catch(e) { status.innerText = "Error."; }
+            await fetch('/api/upload', { method: 'POST', body: fd });
+            status.innerText = "Locked & Loaded.";
+            setTimeout(() => status.innerText = "", 3000);
+            fetchAdminState();
         }
 
+        async function toggleStatus(type) {
+            await fetch('/api/broadcast/toggle/' + type, { method: 'POST' });
+            fetchAdminState();
+        }
+
+        async function playTrack(i) { await fetch('/api/broadcast/play/'+i, {method:'POST'}); fetchAdminState(); }
+        async function deleteTrack(i) { await fetch('/api/playlist/delete/'+i, {method:'POST'}); fetchAdminState(); }
+        async function clearAll() { if(confirm("Wipe?")) { await fetch('/api/playlist/clear', {method:'POST'}); fetchAdminState(); }}
         async function addUrls() {
-            const val = document.getElementById('bulk-urls').value;
-            if(!val.trim()) return;
-            const tracks = val.split('\\n').filter(l => l.trim()).map(l => {
-                const parts = l.split('|');
-                return { url: parts[0].trim(), title: (parts[1] || "Remote").trim().toUpperCase(), isLocal: false };
+            const v = document.getElementById('bulk-urls').value;
+            const tracks = v.split('\\n').filter(l=>l.trim()).map(l=>{
+                const p = l.split('|');
+                return { url: p[0].trim(), title: (p[1]||"Remote").trim().toUpperCase(), isLocal: false };
             });
             await fetch('/api/playlist/bulk', {
                 method: 'POST',
@@ -274,21 +323,17 @@ const adminHTML = `
                 body: JSON.stringify({ tracks })
             });
             document.getElementById('bulk-urls').value = '';
-            fetchState();
+            fetchAdminState();
         }
 
-        async function playNow(i) { await fetch('/api/broadcast/play/'+i, { method: 'POST' }); fetchState(); }
-        async function deleteTrack(i) { await fetch('/api/playlist/delete/'+i, { method: 'POST' }); fetchState(); }
-        async function clearQueue() { if(confirm("WIPE SYSTEM?")) { await fetch('/api/playlist/clear', {method: 'POST'}); fetchState(); }}
-
-        fetchState();
-        setInterval(fetchState, 5000);
+        fetchAdminState();
+        setInterval(fetchAdminState, 5000);
     </script>
 </body>
 </html>
 `;
 
-// --- API ROUTES ---
+// --- SERVER API ---
 
 app.get('/', (req, res) => res.send(listenerHTML));
 app.get('/admin', (req, res) => res.send(adminHTML));
@@ -312,23 +357,11 @@ app.post('/api/playlist/bulk', (req, res) => {
     res.json({ success: true });
 });
 
-app.post('/api/playlist/delete/:index', (req, res) => {
-    const i = parseInt(req.params.index);
-    if (i >= 0 && i < playlist.length) {
-        const track = playlist[i];
-        if (track.isLocal && fs.existsSync(track.path)) {
-            try { fs.unlinkSync(track.path); } catch (e) {}
-        }
-        playlist.splice(i, 1);
-        if (broadcastStatus.currentTrackIndex >= playlist.length) broadcastStatus.currentTrackIndex = 0;
-    }
-    res.json({ success: true });
-});
-
-app.post('/api/playlist/clear', (req, res) => {
-    playlist.forEach(t => { if(t.isLocal && fs.existsSync(t.path)) fs.unlinkSync(t.path); });
-    playlist = [];
-    res.json({ success: true });
+app.post('/api/broadcast/toggle/:type', (req, res) => {
+    if(req.params.type === 'live') broadcastStatus.isLive = !broadcastStatus.isLive;
+    if(req.params.type === 'dj') broadcastStatus.isDjLinked = !broadcastStatus.isDjLinked;
+    broadcastStatus.startTime = Date.now(); // Reset sync
+    res.json(broadcastStatus);
 });
 
 app.post('/api/broadcast/play/:index', (req, res) => {
@@ -341,17 +374,31 @@ app.post('/api/broadcast/play/:index', (req, res) => {
     }
 });
 
+app.post('/api/playlist/delete/:index', (req, res) => {
+    const i = parseInt(req.params.index);
+    if (i >= 0 && i < playlist.length) {
+        if(playlist[i].isLocal && fs.existsSync(playlist[i].path)) fs.unlinkSync(playlist[i].path);
+        playlist.splice(i, 1);
+    }
+    res.json({ success: true });
+});
+
+app.post('/api/playlist/clear', (req, res) => {
+    playlist.forEach(t => { if(t.isLocal && fs.existsSync(t.path)) fs.unlinkSync(t.path); });
+    playlist = [];
+    res.json({ success: true });
+});
+
 app.get('/api/status', (req, res) => res.json(broadcastStatus));
 
 app.get('/stream', async (req, res) => {
     try {
         const track = playlist[broadcastStatus.currentTrackIndex];
-        if (!track) return res.status(404).send("Silence");
+        if (!track || !broadcastStatus.isLive) return res.status(404).send("Silence");
+        
         if (track.isLocal) {
-            if (fs.existsSync(track.path)) {
-                res.setHeader('Content-Type', 'audio/mpeg');
-                fs.createReadStream(track.path).pipe(res);
-            } else res.status(404).send("Missing");
+            res.setHeader('Content-Type', 'audio/mpeg');
+            fs.createReadStream(track.path).pipe(res);
         } else {
             const response = await axios({ method: 'get', url: track.url, responseType: 'stream', timeout: 10000 });
             res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
@@ -360,4 +407,4 @@ app.get('/stream', async (req, res) => {
     } catch (e) { res.status(500).send("Signal Error"); }
 });
 
-app.listen(PORT, () => console.log('Radar active on port ' + PORT));
+app.listen(PORT, () => console.log('Radar synced on ' + PORT));

@@ -25,18 +25,17 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 500 * 1024 * 1024, files: 100 } // Support up to 500MB per file
+    limits: { fileSize: 500 * 1024 * 1024, files: 100 } 
 });
 
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(uploadDir));
 
 // --- SMART KEEP-ALIVE (ANTI-SLEEP) ---
-// This pings the server to keep the instance warm without triggering a reset
 function keepAlive() {
     axios.get(`${APP_URL}/api/ping`).catch(() => {});
 }
-setInterval(keepAlive, 300000); // Every 5 minutes for reliability on free tiers
+setInterval(keepAlive, 300000); 
 
 // Global Station State
 let playlist = [
@@ -183,7 +182,7 @@ const listenerHTML = `
 </html>
 `;
 
-// --- ADMIN UI --- (Includes Progress Bar + Turbo Upload)
+// --- ADMIN UI ---
 const adminHTML = `
 <!DOCTYPE html>
 <html>
@@ -218,7 +217,6 @@ const adminHTML = `
                     <input type="file" id="file-input" multiple accept="audio/*" class="hidden" onchange="handleUpload(this.files)">
                     <button id="upload-trigger" onclick="document.getElementById('file-input').click()" class="w-full bg-pink-500 py-4 font-black uppercase text-xs">Select Album</button>
                     
-                    <!-- PROGRESS BAR UI -->
                     <div id="progress-container" class="mt-6 hidden">
                         <div class="flex justify-between text-[10px] font-black uppercase mb-2">
                             <span id="up-status">Transmitting...</span>
@@ -257,22 +255,17 @@ const adminHTML = `
 
         function handleUpload(files) {
             if (!files.length) return;
-            
             const btn = document.getElementById('upload-trigger');
             const container = document.getElementById('progress-container');
             const bar = document.getElementById('up-bar');
             const percentText = document.getElementById('up-percent');
             const statusText = document.getElementById('up-status');
-            
             btn.disabled = true;
             container.classList.remove('hidden');
-            
             const fd = new FormData();
             for(let f of files) fd.append('audioFiles', f);
-            
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/api/upload', true);
-            
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percent = Math.round((e.loaded / e.total) * 100);
@@ -280,28 +273,21 @@ const adminHTML = `
                     percentText.innerText = percent + '%';
                 }
             };
-            
             xhr.onload = () => {
                 if (xhr.status === 200) {
                     statusText.innerText = "COMPLETED";
-                    setTimeout(() => {
-                        container.classList.add('hidden');
-                        btn.disabled = false;
-                        fetchAdminState();
-                    }, 2000);
+                    setTimeout(() => { container.classList.add('hidden'); btn.disabled = false; fetchAdminState(); }, 2000);
                 } else {
                     statusText.innerText = "FAILED";
                     btn.disabled = false;
                 }
             };
-            
             xhr.send(fd);
         }
 
         async function toggleStatus(type) { await fetch('/api/broadcast/toggle/' + type, { method: 'POST' }); fetchAdminState(); }
         async function playTrack(i) { await fetch('/api/broadcast/play/'+i, {method:'POST'}); fetchAdminState(); }
         async function deleteTrack(i) { await fetch('/api/playlist/delete/'+i, {method:'POST'}); fetchAdminState(); }
-        
         fetchAdminState();
         setInterval(fetchAdminState, 8000);
     </script>
@@ -313,7 +299,7 @@ const adminHTML = `
 
 app.get('/', (req, res) => res.send(listenerHTML));
 app.get('/admin', (req, res) => res.send(adminHTML));
-app.get('/api/ping', (req, res) => res.send('AWAKE')); // Lightweight keep-alive endpoint
+app.get('/api/ping', (req, res) => res.send('AWAKE'));
 
 app.post('/api/upload', upload.array('audioFiles'), (req, res) => {
     const newTracks = req.files.map(f => ({
@@ -359,6 +345,7 @@ app.post('/api/broadcast/play/:index', (req, res) => {
 
 app.get('/api/status', (req, res) => res.json(broadcastStatus));
 
+// --- STREAMING ENGINE (CRITICAL FIX FOR MUSIC NOT PLAYING) ---
 app.get('/stream', async (req, res) => {
     try {
         const track = playlist[broadcastStatus.currentTrackIndex];
@@ -366,6 +353,8 @@ app.get('/stream', async (req, res) => {
         
         if (track.isLocal) {
             const filePath = track.path;
+            if (!fs.existsSync(filePath)) return res.status(404).send("File Missing");
+
             const stat = fs.statSync(filePath);
             const range = req.headers.range;
 
@@ -373,8 +362,16 @@ app.get('/stream', async (req, res) => {
                 const parts = range.replace(/bytes=/, "").split("-");
                 const start = parseInt(parts[0], 10);
                 const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
+                
+                // Ensure ranges are valid
+                if (start >= stat.size || end >= stat.size) {
+                    res.status(416).send('Requested range not satisfiable');
+                    return;
+                }
+
                 const chunksize = (end - start) + 1;
                 const file = fs.createReadStream(filePath, {start, end});
+                
                 res.writeHead(206, {
                     'Content-Range': `bytes ${start}-${end}/${stat.size}`,
                     'Accept-Ranges': 'bytes',
@@ -395,7 +392,9 @@ app.get('/stream', async (req, res) => {
             res.setHeader('Content-Type', 'audio/mpeg');
             response.data.pipe(res);
         }
-    } catch (e) { res.status(500).send("Stream error"); }
+    } catch (e) { 
+        res.status(500).send("Stream error"); 
+    }
 });
 
 app.listen(PORT, () => {

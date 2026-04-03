@@ -6,7 +6,6 @@ const fs = require('fs');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-// REPLACE THIS with your actual Render URL (e.g., https://your-app-name.onrender.com)
 const APP_URL = process.env.RENDER_EXTERNAL_URL || `https://radar-dance-radio.onrender.com/`;
 
 // Setup directories
@@ -15,7 +14,7 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Optimized Multer for fast disk writing
+// HIGH-SPEED STORAGE CONFIG
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => {
@@ -26,21 +25,18 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 250 * 1024 * 1024, files: 100 } 
+    limits: { fileSize: 500 * 1024 * 1024, files: 100 } // Support up to 500MB per file
 });
 
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(uploadDir));
 
-// --- SELF-WAKE ENGINE (ANTI-SLEEP) ---
-function wakeServer() {
-    console.log("Sending heartbeat signal...");
-    axios.get(APP_URL).catch(() => {
-        // Silently catch errors if server is just starting up
-    });
+// --- SMART KEEP-ALIVE (ANTI-SLEEP) ---
+// This pings the server to keep the instance warm without triggering a reset
+function keepAlive() {
+    axios.get(`${APP_URL}/api/ping`).catch(() => {});
 }
-// Wake every 10 minutes (600,000 ms)
-setInterval(wakeServer, 600000);
+setInterval(keepAlive, 300000); // Every 5 minutes for reliability on free tiers
 
 // Global Station State
 let playlist = [
@@ -131,7 +127,7 @@ const listenerHTML = `
         </div>
         <div class="text-right">
             <span class="block text-pink mb-1">System Engine</span>
-            <span class="text-2xl text-white font-black italic tracking-tighter italic">V3.1_WAKE</span>
+            <span class="text-2xl text-white font-black italic tracking-tighter italic">V3.5_TURBO</span>
         </div>
     </footer>
 
@@ -187,7 +183,7 @@ const listenerHTML = `
 </html>
 `;
 
-// --- ADMIN UI --- (Includes High-Speed Upload + Wake Status)
+// --- ADMIN UI --- (Includes Progress Bar + Turbo Upload)
 const adminHTML = `
 <!DOCTYPE html>
 <html>
@@ -197,6 +193,7 @@ const adminHTML = `
     <style>
         body { background: #f0f2f5; color: #05070a; font-family: 'Inter', sans-serif; }
         .card { background: white; border: 4px solid #05070a; box-shadow: 10px 10px 0px #ff007f; }
+        .progress-bar { transition: width 0.3s ease; }
     </style>
 </head>
 <body class="p-8">
@@ -217,15 +214,25 @@ const adminHTML = `
 
             <div class="space-y-6">
                 <div class="card p-8 bg-black text-white">
-                    <h2 class="text-xl font-black mb-4 uppercase text-pink-500">Bulk Upload</h2>
+                    <h2 class="text-xl font-black mb-4 uppercase text-pink-500">Turbo Bulk Upload</h2>
                     <input type="file" id="file-input" multiple accept="audio/*" class="hidden" onchange="handleUpload(this.files)">
-                    <button onclick="document.getElementById('file-input').click()" class="w-full bg-pink-500 py-4 font-black uppercase text-xs">Select Album</button>
-                    <div id="up-status" class="mt-4 text-[10px] font-black uppercase text-center text-pink-500"></div>
+                    <button id="upload-trigger" onclick="document.getElementById('file-input').click()" class="w-full bg-pink-500 py-4 font-black uppercase text-xs">Select Album</button>
+                    
+                    <!-- PROGRESS BAR UI -->
+                    <div id="progress-container" class="mt-6 hidden">
+                        <div class="flex justify-between text-[10px] font-black uppercase mb-2">
+                            <span id="up-status">Transmitting...</span>
+                            <span id="up-percent">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                            <div id="up-bar" class="progress-bar h-full bg-pink-500 w-0"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card p-8">
-                    <h2 class="text-xl font-black mb-4 uppercase">Wake Signal</h2>
-                    <p class="text-[10px] text-gray-400 font-bold uppercase mb-4 tracking-widest">Status: Heartbeat Active (Every 10m)</p>
-                    <button onclick="fetch('/api/wake')" class="w-full bg-black text-white py-4 font-black uppercase text-xs">Manual Heartbeat</button>
+                    <h2 class="text-xl font-black mb-4 uppercase">System State</h2>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase mb-4 tracking-widest">Anti-Sleep: Keep-Alive Active</p>
+                    <button onclick="location.reload()" class="w-full bg-black text-white py-4 font-black uppercase text-xs">Refresh Admin UI</button>
                 </div>
             </div>
         </div>
@@ -238,27 +245,65 @@ const adminHTML = `
             const playlist = await pRes.json();
             
             document.getElementById('playlist-list').innerHTML = playlist.map((t, i) => \`
-                <div class="flex items-center justify-between p-4 border-2 border-black \${status.currentTrackIndex === i ? 'bg-pink-50' : ''}">
+                <div class="flex items-center justify-between p-4 border-2 border-black \${status.currentTrackIndex === i ? 'bg-pink-50 border-pink-500' : ''}">
                     <div class="font-black uppercase text-xs">\${t.title}</div>
-                    <button onclick="playTrack(\${i})" class="bg-black text-white px-4 py-1 text-[10px] font-black">PLAY</button>
+                    <div class="flex gap-2">
+                        <button onclick="playTrack(\${i})" class="bg-black text-white px-4 py-1 text-[10px] font-black">PLAY</button>
+                        <button onclick="deleteTrack(\${i})" class="border border-black px-2 text-[10px] font-black hover:bg-red-500 hover:text-white">X</button>
+                    </div>
                 </div>
             \`).join('');
         }
 
-        async function handleUpload(files) {
-            const status = document.getElementById('up-status');
-            status.innerText = "TRANSMITTING...";
+        function handleUpload(files) {
+            if (!files.length) return;
+            
+            const btn = document.getElementById('upload-trigger');
+            const container = document.getElementById('progress-container');
+            const bar = document.getElementById('up-bar');
+            const percentText = document.getElementById('up-percent');
+            const statusText = document.getElementById('up-status');
+            
+            btn.disabled = true;
+            container.classList.remove('hidden');
+            
             const fd = new FormData();
             for(let f of files) fd.append('audioFiles', f);
-            await fetch('/api/upload', { method: 'POST', body: fd });
-            status.innerText = "SUCCESS.";
-            fetchAdminState();
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/upload', true);
+            
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    bar.style.width = percent + '%';
+                    percentText.innerText = percent + '%';
+                }
+            };
+            
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    statusText.innerText = "COMPLETED";
+                    setTimeout(() => {
+                        container.classList.add('hidden');
+                        btn.disabled = false;
+                        fetchAdminState();
+                    }, 2000);
+                } else {
+                    statusText.innerText = "FAILED";
+                    btn.disabled = false;
+                }
+            };
+            
+            xhr.send(fd);
         }
 
         async function toggleStatus(type) { await fetch('/api/broadcast/toggle/' + type, { method: 'POST' }); fetchAdminState(); }
         async function playTrack(i) { await fetch('/api/broadcast/play/'+i, {method:'POST'}); fetchAdminState(); }
+        async function deleteTrack(i) { await fetch('/api/playlist/delete/'+i, {method:'POST'}); fetchAdminState(); }
+        
         fetchAdminState();
-        setInterval(fetchAdminState, 10000);
+        setInterval(fetchAdminState, 8000);
     </script>
 </body>
 </html>
@@ -268,7 +313,7 @@ const adminHTML = `
 
 app.get('/', (req, res) => res.send(listenerHTML));
 app.get('/admin', (req, res) => res.send(adminHTML));
-app.get('/api/wake', (req, res) => { wakeServer(); res.json({ sent: true }); });
+app.get('/api/ping', (req, res) => res.send('AWAKE')); // Lightweight keep-alive endpoint
 
 app.post('/api/upload', upload.array('audioFiles'), (req, res) => {
     const newTracks = req.files.map(f => ({
@@ -283,6 +328,17 @@ app.post('/api/upload', upload.array('audioFiles'), (req, res) => {
 });
 
 app.get('/api/playlist', (req, res) => res.json(playlist));
+
+app.post('/api/playlist/delete/:index', (req, res) => {
+    const i = parseInt(req.params.index);
+    if (playlist[i]) {
+        if (playlist[i].isLocal && fs.existsSync(playlist[i].path)) {
+            fs.unlinkSync(playlist[i].path);
+        }
+        playlist.splice(i, 1);
+    }
+    res.json({ success: true });
+});
 
 app.post('/api/broadcast/toggle/:type', (req, res) => {
     if(req.params.type === 'live') broadcastStatus.isLive = !broadcastStatus.isLive;
@@ -343,7 +399,6 @@ app.get('/stream', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Radar Engine v3.1_WAKE listening on ${PORT}`);
-    // Initial wake call
-    setTimeout(wakeServer, 5000);
+    console.log(`Radar Engine v3.5_TURBO listening on ${PORT}`);
+    setTimeout(keepAlive, 5000);
 });

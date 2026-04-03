@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Radar Dance | Pro Admin Portal</title>
+    <!-- Use the official Webcast build -->
     <script src="https://cdn.jsdelivr.net/npm/webcast.js@1.1.3/dist/webcast.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -34,6 +35,7 @@
         .nav-item {
             transition: all 0.2s;
             border-left: 3px solid transparent;
+            cursor: pointer;
         }
         .nav-item.active {
             background: rgba(122, 45, 252, 0.1);
@@ -67,6 +69,22 @@
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        .vu-meter {
+            height: 100px;
+            width: 10px;
+            background: #111;
+            position: relative;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .vu-bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, #00ff00, #ffff00, #ff0000);
+            transition: height 0.1s ease;
+        }
     </style>
 </head>
 <body class="h-screen flex">
@@ -74,9 +92,9 @@
 <!-- Permission Guard -->
 <div id="permissionOverlay" class="overlay">
     <div class="text-center p-8 glass rounded-2xl max-w-md">
-        <h1 class="text-3xl font-bold text-pink-500 mb-4">ACCESS HARDWARE</h1>
-        <p class="text-slate-400 mb-8">To broadcast your mixer and manage tracks, we need hardware permissions.</p>
-        <button onclick="requestPermissions()" class="btn-neon-pink px-8 py-3 rounded-lg font-bold text-white uppercase tracking-widest hover:scale-105 transition">Initialize Studio</button>
+        <h1 class="text-3xl font-bold text-pink-500 mb-4">STUDIO SETUP</h1>
+        <p class="text-slate-400 mb-8">Click below to initialize the audio engine and allow hardware access.</p>
+        <button onclick="requestPermissions()" class="btn-neon-pink px-8 py-3 rounded-lg font-bold text-white uppercase tracking-widest hover:scale-105 transition">Start Radar Studio</button>
     </div>
 </div>
 
@@ -87,33 +105,29 @@
             <span class="w-3 h-3 bg-pink-500 rounded-full animate-pulse"></span>
             RADAR DANCE
         </h1>
-        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Command Center v2.0</p>
     </div>
 
     <div class="flex-grow py-4">
         <div class="px-6 mb-2 text-[10px] font-bold text-slate-500 uppercase">Broadcast</div>
-        <button onclick="showPage('dashboard')" class="nav-item active w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
+        <div onclick="showPage('dashboard')" class="nav-item active w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
             <span>📻</span> Dashboard
-        </button>
+        </div>
         
         <div class="px-6 mt-6 mb-2 text-[10px] font-bold text-slate-500 uppercase">Library</div>
-        <button onclick="showPage('songs')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
-            <span>🎵</span> All Songs
-        </button>
-        <button onclick="showPage('playlists')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
-            <span>📂</span> Playlists
-        </button>
-        <button onclick="showPage('upload')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
-            <span>📤</span> Upload Tracks
-        </button>
-        <button onclick="showPage('youtube')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
+        <div onclick="showPage('songs')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
+            <span>🎵</span> Music Library
+        </div>
+        <div onclick="showPage('upload')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
+            <span>📤</span> Upload Center
+        </div>
+        <div onclick="showPage('youtube')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
             <span>📺</span> YouTube Import
-        </button>
+        </div>
 
         <div class="px-6 mt-6 mb-2 text-[10px] font-bold text-slate-500 uppercase">System</div>
-        <button onclick="showPage('settings')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
+        <div onclick="showPage('settings')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
             <span>⚙️</span> Settings
-        </button>
+        </div>
     </div>
 
     <div class="p-4 border-t border-slate-800">
@@ -122,218 +136,142 @@
                 <span class="text-[10px] font-bold text-slate-500">STATUS</span>
                 <span id="statusDot" class="w-2 h-2 bg-slate-600 rounded-full"></span>
             </div>
-            <div id="statusText" class="text-xs font-bold text-slate-300">OFF AIR</div>
+            <div id="statusText" class="text-xs font-bold text-slate-300 uppercase">Off Air</div>
         </div>
     </div>
 </nav>
 
-<!-- Main Content Area -->
 <main class="flex-grow relative overflow-hidden flex flex-col">
-    
-    <!-- Top Bar -->
     <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 glass">
         <div class="text-sm font-medium text-slate-400" id="pageTitle">Dashboard</div>
-        <div class="flex items-center gap-4">
-            <div class="text-right">
-                <div class="text-xs font-bold text-white">Station Admin</div>
-                <div class="text-[10px] text-pink-500">Primary Source</div>
-            </div>
-            <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-xs font-bold">RD</div>
-        </div>
+        <div id="clock" class="text-xs font-mono text-pink-500 font-bold">00:00:00</div>
     </header>
 
-    <!-- Content Container -->
     <div class="flex-grow overflow-y-auto p-8 custom-scrollbar">
 
         <!-- DASHBOARD PAGE -->
         <div id="page-dashboard" class="page-content active">
             <div class="grid grid-cols-12 gap-6">
-                <!-- Stream Control -->
                 <div class="col-span-12 lg:col-span-8 space-y-6">
-                    <div class="glass rounded-2xl p-6 border-pink-500/20">
-                        <h2 class="text-lg font-bold mb-4 flex items-center gap-2">🎙️ Transmission Control</h2>
+                    <div class="glass rounded-2xl p-6">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h2 class="text-lg font-bold mb-1">Master Output</h2>
+                                <p class="text-xs text-slate-500">Routing hardware input to Icecast</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="vu-meter"><div id="vu-l" class="vu-bar" style="height: 0%"></div></div>
+                                <div class="vu-meter"><div id="vu-r" class="vu-bar" style="height: 0%"></div></div>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-4 mb-6">
                             <div>
-                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Active Input</label>
-                                <select id="audioSource" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white focus:border-pink-500 outline-none"></select>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Hardware Source (Mixer/Mic)</label>
+                                <select id="audioSource" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white outline-none"></select>
                             </div>
                             <div>
-                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Monitor Output</label>
-                                <select class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white opacity-50 cursor-not-allowed"><option>System Default</option></select>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Bitrate</label>
+                                <select id="bitrate" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white outline-none">
+                                    <option value="128">128 kbps (Standard)</option>
+                                    <option value="192">192 kbps (High)</option>
+                                    <option value="320">320 kbps (Pro)</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="flex gap-4">
-                            <button id="broadcastBtn" onclick="toggleBroadcast()" class="flex-grow btn-neon-pink text-white font-bold py-3 rounded-xl hover:scale-[1.02] active:scale-100 transition">GO LIVE ON /LISTEN</button>
-                            <button onclick="window.open('index.html')" class="px-6 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition text-xs">PREVIEW PLAYER</button>
-                        </div>
+
+                        <button id="broadcastBtn" onclick="toggleBroadcast()" class="w-full btn-neon-pink text-white font-bold py-4 rounded-xl hover:scale-[1.01] transition uppercase tracking-widest">Connect to Airwaves</button>
                     </div>
 
                     <div class="glass rounded-2xl p-6">
-                        <h2 class="text-lg font-bold mb-4">📜 Live Console Output</h2>
-                        <div id="statusLog" class="h-64 bg-black/50 rounded-xl p-4 font-mono text-xs text-green-400 overflow-y-auto custom-scrollbar leading-relaxed border border-slate-800">
-                            [SYSTEM] Studio environment ready.<br>
-                            [SYSTEM] Awaiting transmission...
+                        <h2 class="text-sm font-bold text-slate-500 uppercase mb-4">System Logs</h2>
+                        <div id="statusLog" class="h-48 bg-black/50 rounded-xl p-4 font-mono text-[11px] text-green-400 overflow-y-auto custom-scrollbar border border-slate-800">
+                            [SYSTEM] Audio Context Initialized.<br>
+                            [SYSTEM] Ready for hardware handshake.
                         </div>
                     </div>
                 </div>
 
-                <!-- Sidebar Dashboard Info -->
                 <div class="col-span-12 lg:col-span-4 space-y-6">
-                    <div class="glass rounded-2xl p-6 border-cyan-500/20">
-                        <h2 class="text-sm font-bold text-cyan-400 uppercase tracking-widest mb-4">Stream Stats</h2>
-                        <div class="space-y-4">
-                            <div class="flex justify-between">
-                                <span class="text-slate-400 text-sm">Listeners</span>
-                                <span class="font-bold text-white">0</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-400 text-sm">Peak Today</span>
-                                <span class="font-bold text-white">12</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-slate-400 text-sm">Bitrate</span>
-                                <span class="font-bold text-white">128kbps</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="glass rounded-2xl p-6">
-                        <h2 class="text-sm font-bold text-purple-400 uppercase tracking-widest mb-4">Quick Jingles</h2>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button class="bg-slate-800 p-3 rounded-lg text-[10px] font-bold hover:bg-purple-600 transition">STATION ID</button>
-                            <button class="bg-slate-800 p-3 rounded-lg text-[10px] font-bold hover:bg-purple-600 transition">AIRHORN</button>
-                            <button class="bg-slate-800 p-3 rounded-lg text-[10px] font-bold hover:bg-purple-600 transition">SWEEPER 1</button>
-                            <button class="bg-slate-800 p-3 rounded-lg text-[10px] font-bold hover:bg-purple-600 transition">AD BREAK</button>
-                        </div>
+                    <div class="glass rounded-2xl p-6 text-center">
+                        <h2 class="text-xs font-bold text-slate-500 uppercase mb-4">Current Track</h2>
+                        <div class="w-32 h-32 bg-slate-800 rounded-xl mx-auto mb-4 flex items-center justify-center text-4xl shadow-2xl">📻</div>
+                        <div id="nowPlayingTitle" class="font-bold text-white">LIVE FEED</div>
+                        <div id="nowPlayingArtist" class="text-xs text-pink-500">External Input</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- SONGS PAGE -->
+        <!-- MUSIC LIBRARY PAGE -->
         <div id="page-songs" class="page-content">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Library Manager</h2>
-                <div class="flex gap-2">
-                    <input type="text" placeholder="Search songs..." class="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:border-pink-500 w-64">
-                    <button onclick="showPage('upload')" class="bg-pink-600 px-4 py-2 rounded-lg text-sm font-bold">+ Add New</button>
-                </div>
+                <h2 class="text-2xl font-bold">Local Library</h2>
+                <button onclick="showPage('upload')" class="bg-pink-600 px-4 py-2 rounded-lg text-sm font-bold">Add Tracks</button>
             </div>
             <div class="glass rounded-2xl overflow-hidden">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-900/50 text-slate-500 uppercase text-[10px] font-bold">
                         <tr>
-                            <th class="p-4">Track Title</th>
-                            <th class="p-4">Artist</th>
-                            <th class="p-4">Length</th>
-                            <th class="p-4">Uploaded</th>
+                            <th class="p-4">File Name</th>
+                            <th class="p-4">Status</th>
                             <th class="p-4">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="songsList" class="divide-y divide-slate-800">
-                        <tr class="hover:bg-slate-800/30">
-                            <td class="p-4 font-medium text-white">Midnight Drive</td>
-                            <td class="p-4 text-slate-400">Synthwave Pro</td>
-                            <td class="p-4 text-slate-400">03:45</td>
-                            <td class="p-4 text-slate-400">2 hours ago</td>
-                            <td class="p-4"><button class="text-pink-500 hover:underline">Edit</button></td>
-                        </tr>
-                        <tr class="hover:bg-slate-800/30">
-                            <td class="p-4 font-medium text-white">Summer Bass</td>
-                            <td class="p-4 text-slate-400">Beachside</td>
-                            <td class="p-4 text-slate-400">04:12</td>
-                            <td class="p-4 text-slate-400">Yesterday</td>
-                            <td class="p-4"><button class="text-pink-500 hover:underline">Edit</button></td>
+                    <tbody id="libraryList" class="divide-y divide-slate-800">
+                        <!-- Tracks appear here after upload -->
+                        <tr id="emptyRow">
+                            <td colspan="3" class="p-8 text-center text-slate-500 italic">No tracks loaded. Use the Upload Center to add music.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- PLAYLISTS PAGE -->
-        <div id="page-playlists" class="page-content">
-            <h2 class="text-2xl font-bold mb-6">Playlists</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass p-6 rounded-2xl border-l-4 border-pink-500 hover:scale-[1.02] transition cursor-pointer">
-                    <div class="text-3xl mb-4">🔥</div>
-                    <h3 class="font-bold text-lg">Morning Peak</h3>
-                    <p class="text-xs text-slate-500">24 Tracks • 1h 45m</p>
-                </div>
-                <div class="glass p-6 rounded-2xl border-l-4 border-cyan-500 hover:scale-[1.02] transition cursor-pointer">
-                    <div class="text-3xl mb-4">🌙</div>
-                    <h3 class="font-bold text-lg">Night Vibes</h3>
-                    <p class="text-xs text-slate-500">45 Tracks • 3h 12m</p>
-                </div>
-                <div class="glass p-6 rounded-2xl border-l-4 border-purple-500 border-dashed flex flex-col items-center justify-center py-10 opacity-60 hover:opacity-100 transition cursor-pointer">
-                    <div class="text-3xl mb-2">+</div>
-                    <h3 class="font-bold text-sm uppercase">Create Playlist</h3>
-                </div>
-            </div>
-        </div>
-
         <!-- UPLOAD PAGE -->
         <div id="page-upload" class="page-content">
-            <h2 class="text-2xl font-bold mb-6">Upload High-Res Tracks</h2>
-            <div class="glass rounded-2xl p-12 border-2 border-dashed border-slate-700 flex flex-col items-center justify-center">
-                <div class="w-16 h-16 bg-pink-500/10 rounded-full flex items-center justify-center text-3xl mb-4">📤</div>
-                <h3 class="text-xl font-bold mb-2">Drag & Drop WAV/MP3</h3>
-                <p class="text-slate-500 text-sm mb-6">Max file size: 50MB per track</p>
-                <input type="file" id="fileInput" multiple accept="audio/*" class="hidden" onchange="processUploads(this.files)">
-                <button onclick="document.getElementById('fileInput').click()" class="bg-white text-black font-bold px-8 py-3 rounded-lg hover:bg-slate-200 transition">Select Files</button>
+            <h2 class="text-2xl font-bold mb-6">Upload Center</h2>
+            <div class="glass rounded-2xl p-12 border-2 border-dashed border-slate-700 flex flex-col items-center justify-center transition hover:border-pink-500/50" 
+                 id="dropZone" 
+                 onover="this.style.borderColor='#ff007f'"
+                 onclick="document.getElementById('fileInput').click()">
+                <div class="text-5xl mb-4">📂</div>
+                <h3 class="text-xl font-bold mb-2">Load Music to Studio</h3>
+                <p class="text-slate-500 text-sm mb-6 text-center">These files stay in your browser session for live mixing.</p>
+                <input type="file" id="fileInput" multiple accept="audio/*" class="hidden" onchange="handleFileUpload(this.files)">
+                <button class="bg-white text-black font-bold px-8 py-3 rounded-lg hover:bg-slate-200 transition">Browse Files</button>
             </div>
-            <div id="uploadQueue" class="mt-8 space-y-3"></div>
+            
+            <div id="uploadList" class="mt-8 space-y-3"></div>
         </div>
 
         <!-- YOUTUBE PAGE -->
         <div id="page-youtube" class="page-content">
-            <h2 class="text-2xl font-bold mb-6">YouTube to Station</h2>
+            <h2 class="text-2xl font-bold mb-6">YouTube Downloader</h2>
             <div class="glass p-8 rounded-2xl max-w-2xl">
-                <p class="text-sm text-slate-400 mb-6">Paste a YouTube link below. We will extract the high-quality audio and add it directly to your library.</p>
-                <div class="flex gap-3">
-                    <input type="text" id="ytUrl" placeholder="https://youtube.com/watch?v=..." class="flex-grow bg-black border border-slate-700 rounded-lg px-4 py-3 outline-none focus:border-red-500">
-                    <button onclick="importYoutube()" class="bg-red-600 px-6 py-3 rounded-lg font-bold hover:bg-red-500 transition">Fetch Audio</button>
-                </div>
-                <div id="ytStatus" class="mt-4 text-xs font-mono text-slate-500"></div>
+                <input type="text" id="ytUrl" placeholder="Paste YouTube Link..." class="w-full bg-black border border-slate-700 rounded-lg px-4 py-3 mb-4 outline-none focus:border-red-500">
+                <button onclick="simulateYT()" class="bg-red-600 w-full py-3 rounded-lg font-bold">Import Audio Track</button>
+                <div id="ytLog" class="mt-4 text-xs font-mono text-slate-500"></div>
             </div>
         </div>
 
         <!-- SETTINGS PAGE -->
         <div id="page-settings" class="page-content">
-            <h2 class="text-2xl font-bold mb-6">Station Settings</h2>
-            <div class="max-w-xl space-y-8">
-                <div class="glass p-6 rounded-2xl">
-                    <h3 class="font-bold mb-4 text-pink-500 uppercase text-xs tracking-widest">Icecast Integration</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Hostname</label>
-                            <input type="text" id="icecastHost" value="radar-dance.onrender.com" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Mount Point</label>
-                            <input type="text" id="icecastMount" value="/listen" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Source Password</label>
-                            <input type="password" id="icecastPass" value="dance123" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
-                        </div>
-                    </div>
+            <h2 class="text-2xl font-bold mb-6">Connection Settings</h2>
+            <div class="max-w-xl glass p-6 rounded-2xl space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Icecast Host</label>
+                    <input type="text" id="icecastHost" value="radar-dance.onrender.com" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
                 </div>
-
-                <div class="glass p-6 rounded-2xl">
-                    <h3 class="font-bold mb-4 text-cyan-500 uppercase text-xs tracking-widest">Station Profile</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Station Name</label>
-                            <input type="text" value="Radar Dance" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Description</label>
-                            <textarea class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white h-24">The heart of synthwave and dance music, broadcasting 24/7 from the digital underground.</textarea>
-                        </div>
-                    </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Mount Point</label>
+                    <input type="text" id="icecastMount" value="/listen" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
                 </div>
-
-                <button class="btn-neon-pink w-full py-4 rounded-xl font-bold">Save All Changes</button>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Password</label>
+                    <input type="password" id="icecastPass" value="dance123" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
+                </div>
+                <button class="btn-neon-pink w-full py-3 rounded-lg font-bold mt-4" onclick="addLog('Settings Updated locally.')">Update Configuration</button>
             </div>
         </div>
 
@@ -341,162 +279,180 @@
 </main>
 
 <script>
-    // --- Navigation Logic ---
-    function showPage(pageId) {
-        // Update Title
-        const titles = {
-            'dashboard': 'Radio Dashboard',
-            'songs': 'Music Library',
-            'playlists': 'Playlist Collections',
-            'upload': 'Upload Center',
-            'youtube': 'YouTube Import Tool',
-            'settings': 'Global Settings'
-        };
-        document.getElementById('pageTitle').innerText = titles[pageId];
+    let isStreaming = false;
+    let webcast;
+    let audioContext;
+    let mixerNode;
+    let streamSource;
+    let localTracks = [];
 
-        // Toggle Content
+    // --- System ---
+    function showPage(pageId) {
         document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
         document.getElementById('page-' + pageId).classList.add('active');
-
-        // Update Sidebar
-        document.querySelectorAll('.nav-item').forEach(btn => {
-            btn.classList.remove('active');
-            if(btn.innerText.toLowerCase().includes(pageId)) btn.classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(nav => {
+            nav.classList.toggle('active', nav.getAttribute('onclick').includes(pageId));
         });
+        document.getElementById('pageTitle').innerText = pageId.charAt(0).toUpperCase() + pageId.slice(1);
     }
-
-    // --- Audio & Broadcasting ---
-    const logArea = document.getElementById('statusLog');
-    const audioSelect = document.getElementById('audioSource');
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    const broadcastBtn = document.getElementById('broadcastBtn');
-    const overlay = document.getElementById('permissionOverlay');
-    
-    let isStreaming = false;
-    let webcastInstance;
-    let userStream;
 
     function addLog(msg, isError = false) {
+        const log = document.getElementById('statusLog');
         const color = isError ? '#ff007f' : '#4ade80';
-        const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        logArea.innerHTML += `<br><span style="color:${color}">[${time}] ${msg}</span>`;
-        logArea.scrollTop = logArea.scrollHeight;
+        log.innerHTML += `<div style="color: ${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+        log.scrollTop = log.scrollHeight;
     }
 
+    // --- Audio Logic ---
     async function requestPermissions() {
-        addLog("Requesting hardware permissions...");
         try {
-            userStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            overlay.style.display = 'none';
-            await refreshAudioDevices();
-            addLog("Permissions granted. Ready to broadcast.");
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            document.getElementById('permissionOverlay').style.display = 'none';
+            addLog("Audio Engine Waked Up.");
+            
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const select = document.getElementById('audioSource');
+            devices.filter(d => d.kind === 'audioinput').forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.deviceId;
+                opt.text = d.label || 'Unknown Input';
+                select.appendChild(opt);
+            });
         } catch (e) {
-            addLog("PERMISSION DENIED: " + e.message, true);
-            alert("Mic access is required to use the mixer.");
+            alert("Mic access is required for broadcasting.");
         }
     }
 
-    async function refreshAudioDevices() {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            audioSelect.innerHTML = "";
-            const audioInputs = devices.filter(d => d.kind === 'audioinput');
-            audioInputs.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d.deviceId;
-                opt.text = d.label || `Mixer Input ${audioSelect.length + 1}`;
-                audioSelect.appendChild(opt);
-            });
-        } catch (e) { addLog("Error loading hardware.", true); }
-    }
-
     async function toggleBroadcast() {
-        if (isStreaming) { location.reload(); return; }
+        if (isStreaming) {
+            location.reload();
+            return;
+        }
 
-        const host = document.getElementById('icecastHost').value.replace('https://', '').replace('http://', '');
-        const mount = document.getElementById('icecastMount').value;
-        const pass = document.getElementById('icecastPass').value;
+        const btn = document.getElementById('broadcastBtn');
+        const host = document.getElementById('icecastHost').value.trim();
+        const mount = document.getElementById('icecastMount').value.trim();
+        const pass = document.getElementById('icecastPass').value.trim();
+        const selectedId = document.getElementById('audioSource').value;
 
-        addLog(`Initiating handshake with ${host}...`);
+        addLog(`Handshaking with ${host}...`);
 
         try {
-            if (userStream) userStream.getTracks().forEach(t => t.stop());
-            userStream = await navigator.mediaDevices.getUserMedia({
-                audio: { deviceId: { exact: audioSelect.value } }
+            if (audioContext.state === 'suspended') await audioContext.resume();
+
+            const micStream = await navigator.mediaDevices.getUserMedia({
+                audio: { deviceId: { exact: selectedId } }
             });
 
-            const WebcastConstructor = window.Webcast || Webcast;
-            webcastInstance = new WebcastConstructor({
+            // Create Webcast using standard WebSocket wrapper for Icecast
+            // Note: Render often requires wss (Secure WebSockets)
+            webcast = new Webcast({
                 url: `wss://${host}/source`, 
                 mount: mount,
                 user: "source",
                 pass: pass,
                 type: "audio/mp3",
-                bitrate: 128
+                bitrate: parseInt(document.getElementById('bitrate').value)
             });
 
-            webcastInstance.on("connect", () => {
+            webcast.on("connect", () => {
                 isStreaming = true;
-                addLog("CONNECTED! Station is LIVE on /listen.");
-                statusDot.className = "w-2 h-2 bg-pink-500 shadow-[0_0_8px_#ff007f]";
-                statusText.innerText = "ON AIR";
-                statusText.style.color = "#ff007f";
-                broadcastBtn.innerText = "STOP TRANSMISSION";
-                broadcastBtn.classList.remove('btn-neon-pink');
-                broadcastBtn.classList.add('bg-slate-800');
+                addLog("CONNECTED. Transmission active.");
+                document.getElementById('statusDot').style.backgroundColor = "#ff007f";
+                document.getElementById('statusText').innerText = "On Air";
+                document.getElementById('statusText').style.color = "#ff007f";
+                btn.innerText = "Kill Transmission";
+                btn.style.background = "#334155";
+                startVisualizer(micStream);
             });
 
-            webcastInstance.on("error", (err) => { addLog("STREAM ERROR: " + err, true); });
-            webcastInstance.on("close", () => { addLog("Connection closed.", true); isStreaming = false; });
+            webcast.on("error", (e) => addLog("Webcast Error: " + e, true));
 
-            const source = webcastInstance.createSource(userStream);
-            source.connect(webcastInstance.destination);
+            const source = webcast.createSource(micStream);
+            source.connect(webcast.destination);
 
-        } catch (e) { addLog("FAILED: " + e.message, true); }
+        } catch (e) {
+            addLog("Connection Failed: " + e.message, true);
+        }
     }
 
-    // --- Upload Logic ---
-    function processUploads(files) {
-        const queue = document.getElementById('uploadQueue');
-        Array.from(files).forEach(f => {
-            const item = document.createElement('div');
-            item.className = "glass p-4 rounded-xl flex items-center justify-between";
-            item.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <span class="text-lg">📄</span>
-                    <div>
-                        <div class="text-xs font-bold text-white">${f.name}</div>
-                        <div class="text-[10px] text-slate-500">${(f.size/1024/1024).toFixed(1)}MB • MP3</div>
-                    </div>
-                </div>
-                <div class="w-24 bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div class="bg-pink-500 h-full" style="width: 100%; animation: pulse 2s infinite"></div>
-                </div>
-            `;
-            queue.appendChild(item);
-        });
-        showPage('songs');
-    }
-
-    // --- YouTube Logic ---
-    function importYoutube() {
-        const url = document.getElementById('ytUrl').value;
-        const status = document.getElementById('ytStatus');
-        if(!url) return;
+    function startVisualizer(stream) {
+        const analyzer = audioContext.createAnalyser();
+        const src = audioContext.createMediaStreamSource(stream);
+        src.connect(analyzer);
+        analyzer.fftSize = 32;
+        const data = new Uint8Array(analyzer.frequencyBinCount);
         
-        status.innerText = "Connecting to converter...";
-        setTimeout(() => {
-            status.innerText = "Analyzing video metadata...";
-            setTimeout(() => {
-                status.innerText = "Extracting 192kbps audio stream...";
-                setTimeout(() => {
-                    status.innerText = "Successfully added to Library!";
-                    status.classList.add('text-green-400');
-                }, 1500);
-            }, 1000);
-        }, 800);
+        function update() {
+            if(!isStreaming) return;
+            analyzer.getByteFrequencyData(data);
+            const volume = Math.max(...data);
+            document.getElementById('vu-l').style.height = (volume/255 * 100) + "%";
+            document.getElementById('vu-r').style.height = (volume/255 * 90) + "%";
+            requestAnimationFrame(update);
+        }
+        update();
     }
+
+    // --- File Handling ---
+    function handleFileUpload(files) {
+        const list = document.getElementById('uploadList');
+        const library = document.getElementById('libraryList');
+        const empty = document.getElementById('emptyRow');
+        if(empty) empty.remove();
+
+        Array.from(files).forEach(file => {
+            const id = Math.random().toString(36).substr(2, 9);
+            const track = { id, name: file.name, file: file };
+            localTracks.push(track);
+
+            // Add to library table
+            const row = document.createElement('tr');
+            row.className = "hover:bg-slate-800/30";
+            row.innerHTML = `
+                <td class="p-4 text-white font-medium">${file.name}</td>
+                <td class="p-4 text-xs text-green-500">READY</td>
+                <td class="p-4"><button onclick="playTrack('${id}')" class="text-pink-500 hover:underline">Play to Air</button></td>
+            `;
+            library.appendChild(row);
+
+            // Add to upload status
+            const item = document.createElement('div');
+            item.className = "glass p-4 rounded-xl flex justify-between items-center";
+            item.innerHTML = `<span class="text-xs">Processing ${file.name}...</span> <span class="text-[10px] text-green-500">LOADED</span>`;
+            list.appendChild(item);
+        });
+        
+        setTimeout(() => showPage('songs'), 1000);
+    }
+
+    function playTrack(id) {
+        const track = localTracks.find(t => t.id === id);
+        if(!track) return;
+        
+        document.getElementById('nowPlayingTitle').innerText = track.name;
+        document.getElementById('nowPlayingArtist').innerText = "Local Library";
+        addLog(`Cued Track: ${track.name}`);
+        showPage('dashboard');
+    }
+
+    function simulateYT() {
+        const log = document.getElementById('ytLog');
+        log.innerHTML = "Initializing fetch...";
+        setTimeout(() => log.innerHTML = "Handshaking with API...", 1000);
+        setTimeout(() => log.innerHTML = "Converting MP4 to MP3 320kbps...", 2500);
+        setTimeout(() => {
+            log.innerHTML = "Success! Track added to library.";
+            const row = document.createElement('tr');
+            row.innerHTML = `<td class="p-4 text-white">YouTube Rip - ${new Date().getTime()}</td><td class="p-4 text-green-500">READY</td><td class="p-4">Play</td>`;
+            document.getElementById('libraryList').appendChild(row);
+        }, 4000);
+    }
+
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+    }, 1000);
 </script>
 </body>
 </html>

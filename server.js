@@ -6,10 +6,11 @@ const fs = require('fs');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-const APP_URL = process.env.RENDER_EXTERNAL_URL || `https://radar-dance-radio.onrender.com/`;
+// Hardcoded production URL for Radar Dance Radio
+const APP_URL = "https://radar-dance-radio.onrender.com";
 
 // Setup directories
-const uploadDir = path.resolve(__dirname, 'uploads');
+const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -33,9 +34,14 @@ app.use('/uploads', express.static(uploadDir));
 
 // --- SMART KEEP-ALIVE (ANTI-SLEEP) ---
 function keepAlive() {
-    axios.get(`${APP_URL}/api/ping`).catch(() => {});
+    // Specifically ping the production URL provided
+    axios.get(`${APP_URL}/api/ping`).catch(() => {
+        // Fallback to local port if production URL fails
+        axios.get(`http://localhost:${PORT}/api/ping`).catch(() => {});
+    });
 }
-setInterval(keepAlive, 300000); 
+// Ping every 4 minutes to stay ahead of Render's 5-minute spin-down
+setInterval(keepAlive, 240000); 
 
 // Global Station State
 let playlist = [
@@ -151,12 +157,17 @@ const listenerHTML = `
                     const elapsed = (Date.now() - data.startTime) / 1000;
                     audio.src = "/stream?t=" + data.startTime;
                     audio.load();
+                    
                     audio.oncanplay = () => {
+                        // Allow small buffer room for networking delay
                         if (audio.duration && elapsed < audio.duration) {
                             audio.currentTime = elapsed;
                         }
                     };
-                    if(!audio.paused) audio.play().catch(() => {});
+
+                    if(!audio.paused) {
+                        audio.play().catch(e => console.log("Autoplay prevented"));
+                    }
                 }
             } catch(e) {}
         }
@@ -229,7 +240,7 @@ const adminHTML = `
                 </div>
                 <div class="card p-8">
                     <h2 class="text-xl font-black mb-4 uppercase">System State</h2>
-                    <p class="text-[10px] text-gray-400 font-bold uppercase mb-4 tracking-widest">Anti-Sleep: Keep-Alive Active</p>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase mb-4 tracking-widest">Anti-Sleep: Heartbeat Active</p>
                     <button onclick="location.reload()" class="w-full bg-black text-white py-4 font-black uppercase text-xs">Refresh Admin UI</button>
                 </div>
             </div>
@@ -237,20 +248,22 @@ const adminHTML = `
     </div>
     <script>
         async function fetchAdminState() {
-            const res = await fetch('/api/status');
-            const status = await res.json();
-            const pRes = await fetch('/api/playlist');
-            const playlist = await pRes.json();
-            
-            document.getElementById('playlist-list').innerHTML = playlist.map((t, i) => \`
-                <div class="flex items-center justify-between p-4 border-2 border-black \${status.currentTrackIndex === i ? 'bg-pink-50 border-pink-500' : ''}">
-                    <div class="font-black uppercase text-xs">\${t.title}</div>
-                    <div class="flex gap-2">
-                        <button onclick="playTrack(\${i})" class="bg-black text-white px-4 py-1 text-[10px] font-black">PLAY</button>
-                        <button onclick="deleteTrack(\${i})" class="border border-black px-2 text-[10px] font-black hover:bg-red-500 hover:text-white">X</button>
+            try {
+                const res = await fetch('/api/status');
+                const status = await res.json();
+                const pRes = await fetch('/api/playlist');
+                const playlist = await pRes.json();
+                
+                document.getElementById('playlist-list').innerHTML = playlist.map((t, i) => \`
+                    <div class="flex items-center justify-between p-4 border-2 border-black \${status.currentTrackIndex === i ? 'bg-pink-50 border-pink-500' : ''}">
+                        <div class="font-black uppercase text-xs">\${t.title}</div>
+                        <div class="flex gap-2">
+                            <button onclick="playTrack(\${i})" class="bg-black text-white px-4 py-1 text-[10px] font-black">PLAY</button>
+                            <button onclick="deleteTrack(\${i})" class="border border-black px-2 text-[10px] font-black hover:bg-red-500 hover:text-white">X</button>
+                        </div>
                     </div>
-                </div>
-            \`).join('');
+                \`).join('');
+            } catch(e) {}
         }
 
         function handleUpload(files) {
@@ -319,7 +332,7 @@ app.post('/api/playlist/delete/:index', (req, res) => {
     const i = parseInt(req.params.index);
     if (playlist[i]) {
         if (playlist[i].isLocal && fs.existsSync(playlist[i].path)) {
-            fs.unlinkSync(playlist[i].path);
+            try { fs.unlinkSync(playlist[i].path); } catch(e){}
         }
         playlist.splice(i, 1);
     }
@@ -345,14 +358,14 @@ app.post('/api/broadcast/play/:index', (req, res) => {
 
 app.get('/api/status', (req, res) => res.json(broadcastStatus));
 
-// --- STREAMING ENGINE (CRITICAL FIX FOR MUSIC NOT PLAYING) ---
+// --- ROBUST STREAMING ENGINE ---
 app.get('/stream', async (req, res) => {
     try {
         const track = playlist[broadcastStatus.currentTrackIndex];
         if (!track || !broadcastStatus.isLive) return res.status(404).send("Off-Air");
         
         if (track.isLocal) {
-            const filePath = track.path;
+            const filePath = path.resolve(track.path);
             if (!fs.existsSync(filePath)) return res.status(404).send("File Missing");
 
             const stat = fs.statSync(filePath);
@@ -363,9 +376,8 @@ app.get('/stream', async (req, res) => {
                 const start = parseInt(parts[0], 10);
                 const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
                 
-                // Ensure ranges are valid
-                if (start >= stat.size || end >= stat.size) {
-                    res.status(416).send('Requested range not satisfiable');
+                if (start >= stat.size) {
+                    res.status(416).send('Range Not Satisfiable');
                     return;
                 }
 
@@ -373,7 +385,7 @@ app.get('/stream', async (req, res) => {
                 const file = fs.createReadStream(filePath, {start, end});
                 
                 res.writeHead(206, {
-                    'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+                    'Content-Range': \`bytes \${start}-\${end}/\${stat.size}\`,
                     'Accept-Ranges': 'bytes',
                     'Content-Length': chunksize,
                     'Content-Type': 'audio/mpeg',
@@ -388,16 +400,22 @@ app.get('/stream', async (req, res) => {
                 fs.createReadStream(filePath).pipe(res);
             }
         } else {
-            const response = await axios({ method: 'get', url: track.url, responseType: 'stream' });
+            // EXTERNAL STREAM (e.g. FIP)
+            const response = await axios({ 
+                method: 'get', 
+                url: track.url, 
+                responseType: 'stream',
+                timeout: 15000 
+            });
             res.setHeader('Content-Type', 'audio/mpeg');
             response.data.pipe(res);
         }
     } catch (e) { 
-        res.status(500).send("Stream error"); 
+        if (!res.headersSent) res.status(500).send("Stream Error"); 
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Radar Engine v3.5_TURBO listening on ${PORT}`);
+    console.log(\`Radar Engine v3.5_TURBO active on port \${PORT}\`);
     setTimeout(keepAlive, 5000);
 });

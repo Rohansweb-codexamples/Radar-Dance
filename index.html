@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RADAR.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #050505; color: white; font-family: 'Inter', sans-serif; }
+        .radar-logo { font-weight: 900; letter-spacing: -0.05em; font-style: italic; }
+        .dot { color: #ff007f; }
+        .player-card { background: linear-gradient(180deg, #0a0e17 0%, #050505 100%); border: 1px solid #1e1e2e; }
+        .btn-purple { background: #7c3aed; }
+        @keyframes pulse-pink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .live-dot { animation: pulse-pink 1.5s infinite; }
+        .animate-spin-slow { animation: spin 12s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <nav class="p-6 flex justify-between items-center border-b border-white/5">
+        <div class="radar-logo text-3xl">RADAR<span class="dot">.</span></div>
+        <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-widest text-gray-400">
+            <span class="w-2 h-2 bg-[#ff007f] rounded-full live-dot"></span>
+            <span>Live Global Sync</span>
+        </div>
+    </nav>
+
+    <main class="flex-grow flex items-center justify-center p-6">
+        <div class="player-card w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
+            <div class="aspect-square bg-slate-900 rounded-3xl mb-8 flex items-center justify-center border border-white/5 relative overflow-hidden">
+                <i id="disc" class="fa-solid fa-compact-disc text-8xl text-purple-500/20"></i>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+            </div>
+            
+            <div class="text-center mb-8">
+                <h1 id="title" class="text-2xl font-bold mb-1">Station Offline</h1>
+                <p id="artist" class="text-purple-400 text-sm font-medium uppercase tracking-tighter">Waiting for Signal</p>
+            </div>
+
+            <div class="flex flex-col items-center space-y-6">
+                <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                    <div id="progress" class="bg-purple-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <button id="playBtn" onclick="togglePlay()" class="w-20 h-20 rounded-full btn-purple flex items-center justify-center shadow-lg shadow-purple-500/20 hover:scale-105 transition active:scale-95">
+                    <i id="playIcon" class="fa-solid fa-play text-2xl ml-1"></i>
+                </button>
+                <p id="syncStatus" class="text-[10px] text-gray-600 font-mono uppercase">Not Synced</p>
+            </div>
+        </div>
+    </main>
+
+    <audio id="player" crossorigin="anonymous"></audio>
+    <script>
+        let isPlaying = false;
+        let isProcessing = false;
+        let globalOffset = 0;
+        const player = document.getElementById('player');
+        
+        const API_BASE = window.location.hostname.includes('onrender.com') ? '' : 'https://radar-dance-radio.onrender.com';
+
+        async function syncWithServer() {
+            try {
+                const res = await fetch(`${API_BASE}/api/tracks`, { mode: 'cors', cache: 'no-cache' });
+                const data = await res.json();
+                
+                if (data.tracks && data.tracks.length > 0) {
+                    const track = data.tracks[0];
+                    const trackUrl = track.url.startsWith('http') ? track.url : `${API_BASE}${track.url}`;
+                    
+                    if (player.src !== trackUrl) {
+                        player.src = trackUrl;
+                        player.load();
+                    }
+                    
+                    document.getElementById('title').innerText = track.name;
+                    document.getElementById('artist').innerText = "RADAR. ON AIR";
+                    
+                    globalOffset = data.playbackOffset;
+                    document.getElementById('syncStatus').innerText = "Synced with Station";
+                }
+            } catch (error) {
+                console.error('Sync Error:', error);
+                document.getElementById('artist').innerText = "Connection Lost";
+            }
+        }
+
+        async function togglePlay() {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            try {
+                if (isPlaying) {
+                    player.pause();
+                    document.getElementById('playIcon').className = 'fa-solid fa-play text-2xl ml-1';
+                    document.getElementById('disc').classList.remove('animate-spin-slow');
+                    isPlaying = false;
+                } else {
+                    // Sync time before playback
+                    if (globalOffset > 0 && player.duration) {
+                        player.currentTime = globalOffset % player.duration; 
+                    }
+                    
+                    // The play() method returns a promise
+                    await player.play();
+                    
+                    document.getElementById('playIcon').className = 'fa-solid fa-pause text-2xl';
+                    document.getElementById('disc').classList.add('animate-spin-slow');
+                    isPlaying = true;
+                }
+            } catch (e) {
+                console.error("Playback state change failed:", e);
+                // Reset UI state if playback failed
+                document.getElementById('playIcon').className = 'fa-solid fa-play text-2xl ml-1';
+                document.getElementById('disc').classList.remove('animate-spin-slow');
+                isPlaying = false;
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        player.ontimeupdate = () => {
+            if (player.duration) {
+                const prog = (player.currentTime / player.duration) * 100;
+                document.getElementById('progress').style.width = prog + '%';
+            }
+        };
+
+        setInterval(syncWithServer, 30000);
+        window.addEventListener('load', syncWithServer);
+    </script>
+</body>
+</html>

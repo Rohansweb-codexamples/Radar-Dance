@@ -3,456 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radar Dance | Pro Admin Portal</title>
-    <!-- Use the official Webcast build -->
-    <script src="https://cdn.jsdelivr.net/npm/webcast.js@1.1.3/dist/webcast.min.js"></script>
+    <title>RADAR. | Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { background: #050505; color: white; font-family: 'Inter', sans-serif; }
+        .radar-logo { font-weight: 900; letter-spacing: -0.05em; font-style: italic; }
+        .dot { color: #ff007f; }
+        .glass { background: #0a0e17; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .btn-upload { background: #7c3aed; }
         
-        :root {
-            --bg: #05070a;
-            --panel: #0f121a;
-            --pink: #ff007f;
-            --cyan: #00f2ff;
-            --purple: #7a2dfc;
-            --border: #1e293b;
+        /* Custom scrollbar for library */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
         }
-
-        body { 
-            background: var(--bg); 
-            color: #e2e8f0; 
-            font-family: 'Inter', sans-serif;
-            overflow: hidden;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
         }
-
-        .glass {
-            background: rgba(15, 18, 26, 0.8);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border);
-        }
-
-        .nav-item {
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-            cursor: pointer;
-        }
-        .nav-item.active {
-            background: rgba(122, 45, 252, 0.1);
-            border-left: 3px solid var(--pink);
-            color: var(--pink);
-        }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-
-        .btn-neon-pink {
-            background: var(--pink);
-            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
-        }
-
-        .overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.95);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .page-content { display: none; }
-        .page-content.active { display: block; animation: fadeIn 0.3s ease-out; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .vu-meter {
-            height: 100px;
-            width: 10px;
-            background: #111;
-            position: relative;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .vu-bar {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            background: linear-gradient(to top, #00ff00, #ffff00, #ff0000);
-            transition: height 0.1s ease;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #7c3aed;
+            border-radius: 10px;
         }
     </style>
 </head>
-<body class="h-screen flex">
-
-<!-- Permission Guard -->
-<div id="permissionOverlay" class="overlay">
-    <div class="text-center p-8 glass rounded-2xl max-w-md">
-        <h1 class="text-3xl font-bold text-pink-500 mb-4">STUDIO SETUP</h1>
-        <p class="text-slate-400 mb-8">Click below to initialize the audio engine and allow hardware access.</p>
-        <button onclick="requestPermissions()" class="btn-neon-pink px-8 py-3 rounded-lg font-bold text-white uppercase tracking-widest hover:scale-105 transition">Start Radar Studio</button>
-    </div>
-</div>
-
-<!-- Sidebar -->
-<nav class="w-64 border-r border-slate-800 flex flex-col glass h-full z-50">
-    <div class="p-6">
-        <h1 class="text-xl font-black tracking-tighter text-white flex items-center gap-2">
-            <span class="w-3 h-3 bg-pink-500 rounded-full animate-pulse"></span>
-            RADAR DANCE
-        </h1>
-    </div>
-
-    <div class="flex-grow py-4">
-        <div class="px-6 mb-2 text-[10px] font-bold text-slate-500 uppercase">Broadcast</div>
-        <div onclick="showPage('dashboard')" class="nav-item active w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
-            <span>📻</span> Dashboard
-        </div>
-        
-        <div class="px-6 mt-6 mb-2 text-[10px] font-bold text-slate-500 uppercase">Library</div>
-        <div onclick="showPage('songs')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
-            <span>🎵</span> Music Library
-        </div>
-        <div onclick="showPage('upload')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
-            <span>📤</span> Upload Center
-        </div>
-        <div onclick="showPage('youtube')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
-            <span>📺</span> YouTube Import
-        </div>
-
-        <div class="px-6 mt-6 mb-2 text-[10px] font-bold text-slate-500 uppercase">System</div>
-        <div onclick="showPage('settings')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm font-medium">
-            <span>⚙️</span> Settings
-        </div>
-    </div>
-
-    <div class="p-4 border-t border-slate-800">
-        <div id="onAirBadge" class="bg-slate-900 rounded-lg p-3 border border-slate-700">
-            <div class="flex items-center justify-between mb-1">
-                <span class="text-[10px] font-bold text-slate-500">STATUS</span>
-                <span id="statusDot" class="w-2 h-2 bg-slate-600 rounded-full"></span>
-            </div>
-            <div id="statusText" class="text-xs font-bold text-slate-300 uppercase">Off Air</div>
-        </div>
-    </div>
-</nav>
-
-<main class="flex-grow relative overflow-hidden flex flex-col">
-    <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 glass">
-        <div class="text-sm font-medium text-slate-400" id="pageTitle">Dashboard</div>
-        <div id="clock" class="text-xs font-mono text-pink-500 font-bold">00:00:00</div>
+<body class="p-8">
+    <header class="flex justify-between items-center mb-12">
+        <div class="radar-logo text-3xl">RADAR<span class="dot">.</span> <span class="text-sm font-normal not-italic text-gray-500 ml-2">ADMIN</span></div>
+        <a href="/" class="text-xs font-bold text-gray-400 hover:text-white transition">VIEW LIVE SITE</a>
     </header>
 
-    <div class="flex-grow overflow-y-auto p-8 custom-scrollbar">
-
-        <!-- DASHBOARD PAGE -->
-        <div id="page-dashboard" class="page-content active">
-            <div class="grid grid-cols-12 gap-6">
-                <div class="col-span-12 lg:col-span-8 space-y-6">
-                    <div class="glass rounded-2xl p-6">
-                        <div class="flex justify-between items-start mb-6">
-                            <div>
-                                <h2 class="text-lg font-bold mb-1">Master Output</h2>
-                                <p class="text-xs text-slate-500">Routing hardware input to Icecast</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <div class="vu-meter"><div id="vu-l" class="vu-bar" style="height: 0%"></div></div>
-                                <div class="vu-meter"><div id="vu-r" class="vu-bar" style="height: 0%"></div></div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Hardware Source (Mixer/Mic)</label>
-                                <select id="audioSource" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white outline-none"></select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Bitrate</label>
-                                <select id="bitrate" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white outline-none">
-                                    <option value="128">128 kbps (Standard)</option>
-                                    <option value="192">192 kbps (High)</option>
-                                    <option value="320">320 kbps (Pro)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button id="broadcastBtn" onclick="toggleBroadcast()" class="w-full btn-neon-pink text-white font-bold py-4 rounded-xl hover:scale-[1.01] transition uppercase tracking-widest">Connect to Airwaves</button>
-                    </div>
-
-                    <div class="glass rounded-2xl p-6">
-                        <h2 class="text-sm font-bold text-slate-500 uppercase mb-4">System Logs</h2>
-                        <div id="statusLog" class="h-48 bg-black/50 rounded-xl p-4 font-mono text-[11px] text-green-400 overflow-y-auto custom-scrollbar border border-slate-800">
-                            [SYSTEM] Audio Context Initialized.<br>
-                            [SYSTEM] Ready for hardware handshake.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-span-12 lg:col-span-4 space-y-6">
-                    <div class="glass rounded-2xl p-6 text-center">
-                        <h2 class="text-xs font-bold text-slate-500 uppercase mb-4">Current Track</h2>
-                        <div class="w-32 h-32 bg-slate-800 rounded-xl mx-auto mb-4 flex items-center justify-center text-4xl shadow-2xl">📻</div>
-                        <div id="nowPlayingTitle" class="font-bold text-white">LIVE FEED</div>
-                        <div id="nowPlayingArtist" class="text-xs text-pink-500">External Input</div>
-                    </div>
-                </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Upload Section -->
+        <div class="glass p-8 rounded-[2rem]">
+            <h2 class="text-xl font-bold mb-6 flex items-center">
+                <i class="fa-solid fa-cloud-arrow-up mr-3 text-purple-500"></i> Upload Tracks
+            </h2>
+            <div id="dropzone" class="border-2 border-dashed border-white/10 rounded-2xl p-12 text-center hover:border-purple-500/50 transition cursor-pointer group">
+                <input type="file" id="fileInput" multiple class="hidden" accept="audio/*">
+                <i class="fa-solid fa-file-audio text-4xl text-gray-600 group-hover:text-purple-500 mb-4 transition"></i>
+                <p class="text-gray-400">Click or drag audio files here</p>
+                <p class="text-xs text-gray-600 mt-2">MP3, WAV, or OGG preferred</p>
             </div>
+            <div id="selectedFiles" class="mt-4 text-xs text-purple-400 font-medium h-4"></div>
+            <button onclick="uploadFiles()" id="uploadBtn" class="w-full mt-4 py-4 btn-upload rounded-xl font-bold hover:opacity-90 transition active:scale-[0.98]">
+                START UPLOAD
+            </button>
         </div>
 
-        <!-- MUSIC LIBRARY PAGE -->
-        <div id="page-songs" class="page-content">
+        <!-- Library Section -->
+        <div class="glass p-8 rounded-[2rem]">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Local Library</h2>
-                <button onclick="showPage('upload')" class="bg-pink-600 px-4 py-2 rounded-lg text-sm font-bold">Add Tracks</button>
+                <h2 class="text-xl font-bold">Library</h2>
+                <button onclick="loadTracks()" class="text-xs text-gray-500 hover:text-purple-400 transition">
+                    <i class="fa-solid fa-rotate"></i> Refresh
+                </button>
             </div>
-            <div class="glass rounded-2xl overflow-hidden">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-900/50 text-slate-500 uppercase text-[10px] font-bold">
-                        <tr>
-                            <th class="p-4">File Name</th>
-                            <th class="p-4">Status</th>
-                            <th class="p-4">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="libraryList" class="divide-y divide-slate-800">
-                        <!-- Tracks appear here after upload -->
-                        <tr id="emptyRow">
-                            <td colspan="3" class="p-8 text-center text-slate-500 italic">No tracks loaded. Use the Upload Center to add music.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- UPLOAD PAGE -->
-        <div id="page-upload" class="page-content">
-            <h2 class="text-2xl font-bold mb-6">Upload Center</h2>
-            <div class="glass rounded-2xl p-12 border-2 border-dashed border-slate-700 flex flex-col items-center justify-center transition hover:border-pink-500/50" 
-                 id="dropZone" 
-                 onover="this.style.borderColor='#ff007f'"
-                 onclick="document.getElementById('fileInput').click()">
-                <div class="text-5xl mb-4">📂</div>
-                <h3 class="text-xl font-bold mb-2">Load Music to Studio</h3>
-                <p class="text-slate-500 text-sm mb-6 text-center">These files stay in your browser session for live mixing.</p>
-                <input type="file" id="fileInput" multiple accept="audio/*" class="hidden" onchange="handleFileUpload(this.files)">
-                <button class="bg-white text-black font-bold px-8 py-3 rounded-lg hover:bg-slate-200 transition">Browse Files</button>
-            </div>
-            
-            <div id="uploadList" class="mt-8 space-y-3"></div>
-        </div>
-
-        <!-- YOUTUBE PAGE -->
-        <div id="page-youtube" class="page-content">
-            <h2 class="text-2xl font-bold mb-6">YouTube Downloader</h2>
-            <div class="glass p-8 rounded-2xl max-w-2xl">
-                <input type="text" id="ytUrl" placeholder="Paste YouTube Link..." class="w-full bg-black border border-slate-700 rounded-lg px-4 py-3 mb-4 outline-none focus:border-red-500">
-                <button onclick="simulateYT()" class="bg-red-600 w-full py-3 rounded-lg font-bold">Import Audio Track</button>
-                <div id="ytLog" class="mt-4 text-xs font-mono text-slate-500"></div>
-            </div>
-        </div>
-
-        <!-- SETTINGS PAGE -->
-        <div id="page-settings" class="page-content">
-            <h2 class="text-2xl font-bold mb-6">Connection Settings</h2>
-            <div class="max-w-xl glass p-6 rounded-2xl space-y-4">
-                <div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Icecast Host</label>
-                    <input type="text" id="icecastHost" value="radar-dance.onrender.com" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
+            <div id="trackList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                <div class="text-center py-20 text-gray-600">
+                    <i class="fa-solid fa-spinner animate-spin mb-2"></i>
+                    <p>Fetching signal...</p>
                 </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Mount Point</label>
-                    <input type="text" id="icecastMount" value="/listen" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Password</label>
-                    <input type="password" id="icecastPass" value="dance123" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-sm text-white">
-                </div>
-                <button class="btn-neon-pink w-full py-3 rounded-lg font-bold mt-4" onclick="addLog('Settings Updated locally.')">Update Configuration</button>
             </div>
         </div>
-
     </div>
-</main>
 
-<script>
-    let isStreaming = false;
-    let webcast;
-    let audioContext;
-    let mixerNode;
-    let streamSource;
-    let localTracks = [];
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const selectedFilesLabel = document.getElementById('selectedFiles');
+        
+        // Point to the live Render server
+        const API_BASE = 'https://radar-dance-radio.onrender.com';
 
-    // --- System ---
-    function showPage(pageId) {
-        document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
-        document.getElementById('page-' + pageId).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(nav => {
-            nav.classList.toggle('active', nav.getAttribute('onclick').includes(pageId));
-        });
-        document.getElementById('pageTitle').innerText = pageId.charAt(0).toUpperCase() + pageId.slice(1);
-    }
+        fileInput.onchange = () => {
+            const count = fileInput.files.length;
+            selectedFilesLabel.innerText = count > 0 ? `${count} file(s) ready for upload` : '';
+        };
 
-    function addLog(msg, isError = false) {
-        const log = document.getElementById('statusLog');
-        const color = isError ? '#ff007f' : '#4ade80';
-        log.innerHTML += `<div style="color: ${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-        log.scrollTop = log.scrollHeight;
-    }
+        dropzone.onclick = () => fileInput.click();
 
-    // --- Audio Logic ---
-    async function requestPermissions() {
-        try {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            document.getElementById('permissionOverlay').style.display = 'none';
-            addLog("Audio Engine Waked Up.");
+        async function uploadFiles() {
+            const files = fileInput.files;
+            if (files.length === 0) return alert("Select files first");
             
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const select = document.getElementById('audioSource');
-            devices.filter(d => d.kind === 'audioinput').forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d.deviceId;
-                opt.text = d.label || 'Unknown Input';
-                select.appendChild(opt);
-            });
-        } catch (e) {
-            alert("Mic access is required for broadcasting.");
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            uploadBtn.innerText = "UPLOADING...";
+
+            const formData = new FormData();
+            for (let file of files) formData.append('songs', file);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/upload`, { 
+                    method: 'POST', 
+                    body: formData,
+                    mode: 'cors'
+                });
+                
+                if (!res.ok) throw new Error('Upload failed');
+                
+                const data = await res.json();
+                if (data.success) {
+                    fileInput.value = '';
+                    selectedFilesLabel.innerText = '';
+                    loadTracks();
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Upload failed. Make sure the server is awake. Try visiting the URL directly first.");
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerText = "START UPLOAD";
+            }
         }
-    }
 
-    async function toggleBroadcast() {
-        if (isStreaming) {
-            location.reload();
-            return;
+        async function loadTracks() {
+            const container = document.getElementById('trackList');
+            
+            try {
+                // Fetch with explicit CORS mode
+                const res = await fetch(`${API_BASE}/api/tracks`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+
+                if (!res.ok) throw new Error('Could not load library');
+                
+                const tracks = await res.json();
+                
+                if (tracks.length === 0) {
+                    container.innerHTML = '<div class="text-center py-20 text-gray-600 italic">No tracks in library</div>';
+                    return;
+                }
+
+                container.innerHTML = tracks.map(t => `
+                    <div class="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-transparent hover:border-purple-500/30 transition group">
+                        <div class="flex items-center space-x-3 truncate">
+                            <div class="w-8 h-8 bg-purple-500/10 rounded flex items-center justify-center">
+                                <i class="fa-solid fa-music text-purple-500 text-xs"></i>
+                            </div>
+                            <span class="text-sm truncate text-gray-300 group-hover:text-white">${t.name}</span>
+                        </div>
+                        <span class="text-[10px] text-gray-600 font-mono uppercase">Stored</span>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error("Connection Error:", err);
+                container.innerHTML = `<div class="text-center py-20 text-red-500/50 italic font-medium px-4">
+                    <p>Failed to connect to RADAR. server</p>
+                    <p class="text-[10px] mt-4 opacity-50">Server may be sleeping. <br> Visit <a href="${API_BASE}" target="_blank" class="underline">${API_BASE}</a> to wake it up.</p>
+                </div>`;
+            }
         }
 
-        const btn = document.getElementById('broadcastBtn');
-        const host = document.getElementById('icecastHost').value.trim();
-        const mount = document.getElementById('icecastMount').value.trim();
-        const pass = document.getElementById('icecastPass').value.trim();
-        const selectedId = document.getElementById('audioSource').value;
-
-        addLog(`Handshaking with ${host}...`);
-
-        try {
-            if (audioContext.state === 'suspended') await audioContext.resume();
-
-            const micStream = await navigator.mediaDevices.getUserMedia({
-                audio: { deviceId: { exact: selectedId } }
-            });
-
-            // Create Webcast using standard WebSocket wrapper for Icecast
-            // Note: Render often requires wss (Secure WebSockets)
-            webcast = new Webcast({
-                url: `wss://${host}/source`, 
-                mount: mount,
-                user: "source",
-                pass: pass,
-                type: "audio/mp3",
-                bitrate: parseInt(document.getElementById('bitrate').value)
-            });
-
-            webcast.on("connect", () => {
-                isStreaming = true;
-                addLog("CONNECTED. Transmission active.");
-                document.getElementById('statusDot').style.backgroundColor = "#ff007f";
-                document.getElementById('statusText').innerText = "On Air";
-                document.getElementById('statusText').style.color = "#ff007f";
-                btn.innerText = "Kill Transmission";
-                btn.style.background = "#334155";
-                startVisualizer(micStream);
-            });
-
-            webcast.on("error", (e) => addLog("Webcast Error: " + e, true));
-
-            const source = webcast.createSource(micStream);
-            source.connect(webcast.destination);
-
-        } catch (e) {
-            addLog("Connection Failed: " + e.message, true);
-        }
-    }
-
-    function startVisualizer(stream) {
-        const analyzer = audioContext.createAnalyser();
-        const src = audioContext.createMediaStreamSource(stream);
-        src.connect(analyzer);
-        analyzer.fftSize = 32;
-        const data = new Uint8Array(analyzer.frequencyBinCount);
-        
-        function update() {
-            if(!isStreaming) return;
-            analyzer.getByteFrequencyData(data);
-            const volume = Math.max(...data);
-            document.getElementById('vu-l').style.height = (volume/255 * 100) + "%";
-            document.getElementById('vu-r').style.height = (volume/255 * 90) + "%";
-            requestAnimationFrame(update);
-        }
-        update();
-    }
-
-    // --- File Handling ---
-    function handleFileUpload(files) {
-        const list = document.getElementById('uploadList');
-        const library = document.getElementById('libraryList');
-        const empty = document.getElementById('emptyRow');
-        if(empty) empty.remove();
-
-        Array.from(files).forEach(file => {
-            const id = Math.random().toString(36).substr(2, 9);
-            const track = { id, name: file.name, file: file };
-            localTracks.push(track);
-
-            // Add to library table
-            const row = document.createElement('tr');
-            row.className = "hover:bg-slate-800/30";
-            row.innerHTML = `
-                <td class="p-4 text-white font-medium">${file.name}</td>
-                <td class="p-4 text-xs text-green-500">READY</td>
-                <td class="p-4"><button onclick="playTrack('${id}')" class="text-pink-500 hover:underline">Play to Air</button></td>
-            `;
-            library.appendChild(row);
-
-            // Add to upload status
-            const item = document.createElement('div');
-            item.className = "glass p-4 rounded-xl flex justify-between items-center";
-            item.innerHTML = `<span class="text-xs">Processing ${file.name}...</span> <span class="text-[10px] text-green-500">LOADED</span>`;
-            list.appendChild(item);
+        // Drag and drop handlers
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-purple-500', 'bg-purple-500/5');
+            }, false);
         });
-        
-        setTimeout(() => showPage('songs'), 1000);
-    }
 
-    function playTrack(id) {
-        const track = localTracks.find(t => t.id === id);
-        if(!track) return;
-        
-        document.getElementById('nowPlayingTitle').innerText = track.name;
-        document.getElementById('nowPlayingArtist').innerText = "Local Library";
-        addLog(`Cued Track: ${track.name}`);
-        showPage('dashboard');
-    }
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-purple-500', 'bg-purple-500/5');
+            }, false);
+        });
 
-    function simulateYT() {
-        const log = document.getElementById('ytLog');
-        log.innerHTML = "Initializing fetch...";
-        setTimeout(() => log.innerHTML = "Handshaking with API...", 1000);
-        setTimeout(() => log.innerHTML = "Converting MP4 to MP3 320kbps...", 2500);
-        setTimeout(() => {
-            log.innerHTML = "Success! Track added to library.";
-            const row = document.createElement('tr');
-            row.innerHTML = `<td class="p-4 text-white">YouTube Rip - ${new Date().getTime()}</td><td class="p-4 text-green-500">READY</td><td class="p-4">Play</td>`;
-            document.getElementById('libraryList').appendChild(row);
-        }, 4000);
-    }
+        dropzone.addEventListener('drop', (e) => {
+            fileInput.files = e.dataTransfer.files;
+            fileInput.onchange();
+        });
 
-    setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-    }, 1000);
-</script>
+        window.onload = loadTracks;
+    </script>
 </body>
 </html>

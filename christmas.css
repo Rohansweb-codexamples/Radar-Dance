@@ -1,0 +1,245 @@
+/* ===== RADAR Christmas Mode ===== */
+
+/* Festive background */
+body.christmas-mode {
+    background: linear-gradient(180deg, #0d2818 0%, #0a1a10 45%, #1a0a0a 100%) !important;
+}
+
+.christmas-bg {
+    position: fixed;
+    inset: 0;
+    background-image: url('/christmas-bg.svg');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.6;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Lift content above background */
+body.christmas-mode nav,
+body.christmas-mode main,
+body.christmas-mode > .container,
+body.christmas-mode > header {
+    position: relative;
+    z-index: 10;
+}
+
+/* Garland */
+.garland {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 20px;
+    z-index: 199;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle at 10px 10px, #1a6b1a 5px, transparent 6px),
+        radial-gradient(circle at 25px 12px, #e74c3c 2.5px, transparent 3.5px),
+        radial-gradient(circle at 40px 10px, #1a6b1a 5px, transparent 6px),
+        radial-gradient(circle at 55px 12px, #f1c40f 2.5px, transparent 3.5px),
+        radial-gradient(circle at 70px 10px, #1a6b1a 5px, transparent 6px),
+        radial-gradient(circle at 85px 12px, #e74c3c 2.5px, transparent 3.5px);
+    background-size: 100px 20px;
+    background-repeat: repeat-x;
+    animation: garlandSway 3s ease-in-out infinite;
+}
+
+@keyframes garlandSway {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(2px); }
+}
+
+/* String lights */
+.christmas-lights {
+    position: fixed;
+    top: 20px; left: 0; right: 0;
+    height: 28px;
+    z-index: 200;
+    pointer-events: none;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: flex-start;
+    padding-top: 8px;
+}
+
+.christmas-lights .light {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: relative;
+    animation: blink 1.5s infinite;
+}
+
+.christmas-lights .light::before {
+    content: '';
+    position: absolute;
+    top: -6px; left: 50%;
+    transform: translateX(-50%);
+    width: 2px; height: 6px;
+    background: #2a2a2a;
+    border-radius: 1px;
+}
+
+.christmas-lights .light::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    opacity: 0.4;
+    filter: blur(4px);
+}
+
+.light.red    { background: #ff2040; }
+.light.red::after    { background: #ff2040; }
+.light.green  { background: #20ff60; }
+.light.green::after  { background: #20ff60; }
+.light.gold   { background: #ffb000; }
+.light.gold::after   { background: #ffb000; }
+.light.blue   { background: #20a0ff; }
+.light.blue::after   { background: #20a0ff; }
+.light.white  { background: #ffffff; }
+.light.white::after  { background: #ffffff; }
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.15; }
+}
+
+/* Falling snow */
+.snow-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.snowflake {
+    position: absolute;
+    top: -20px;
+    color: #fff;
+    user-select: none;
+    animation: snowfall linear infinite;
+}
+
+@keyframes snowfall {
+    0%   { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
+    10%  { opacity: 0.8; }
+    90%  { opacity: 0.8; }
+    100% { transform: translateY(110vh) translateX(40px) rotate(360deg); opacity: 0; }
+}
+
+/* Floating ornaments */
+.ornament {
+    position: fixed;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    z-index: 198;
+    pointer-events: none;
+    animation: floatOrn 4s ease-in-out infinite;
+}
+
+.ornament::before {
+    content: '';
+    position: absolute;
+    top: -6px; left: 50%;
+    transform: translateX(-50%);
+    width: 2px; height: 6px;
+    background: #444;
+}
+
+.ornament::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+}
+
+@keyframes floatOrn {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-12px) rotate(5deg); }
+}
+
+/* Festive color overrides */
+body.christmas-mode .radar-logo .dot { color: #e74c3c !important; }
+body.christmas-mode .live-dot { background: #20ff60 !important; }
+body.christmas-mode .player-card {
+    background: linear-gradient(180deg, #0d2818 0%, #1a0a0a 100%) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 0 30px rgba(46, 204, 113, 0.1), 0 0 60px rgba(192, 57, 43, 0.05) !important;
+}
+body.christmas-mode .btn-purple {
+    background: linear-gradient(135deg, #c0392b, #e74c3c) !important;
+    box-shadow: 0 0 20px rgba(192, 57, 43, 0.3) !important;
+}
+body.christmas-mode #progress {
+    background: linear-gradient(90deg, #e74c3c, #f1c40f, #20ff60) !important;
+}
+body.christmas-mode #artist { color: #f1c40f !important; }
+body.christmas-mode #disc {
+    color: #20ff60 !important;
+    opacity: 0.3 !important;
+}
+
+/* Admin toggle */
+.christmas-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    color: #888;
+}
+
+.christmas-toggle.active {
+    background: linear-gradient(135deg, #c0392b, #27ae60);
+    border-color: rgba(255,255,255,0.2);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(192, 57, 43, 0.3);
+}
+
+.christmas-toggle:hover { transform: scale(1.05); }
+
+/* Jingle badge */
+.jingle-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: rgba(192, 57, 43, 0.2);
+    color: #e74c3c;
+    border: 1px solid rgba(192, 57, 43, 0.3);
+}
+
+/* Christmas badge (player nav indicator) */
+.xmas-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #e74c3c;
+    animation: xmasPulse 2s ease-in-out infinite;
+}
+
+@keyframes xmasPulse {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 1; }
+}

@@ -6,6 +6,7 @@
     <title>RADAR.</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/christmas.css">
     <style>
         body { background: #050505; color: white; font-family: 'Inter', sans-serif; }
         .radar-logo { font-weight: 900; letter-spacing: -0.05em; font-style: italic; }
@@ -21,9 +22,15 @@
 <body class="min-h-screen flex flex-col">
     <nav class="p-6 flex justify-between items-center border-b border-white/5">
         <div class="radar-logo text-3xl">RADAR<span class="dot">.</span></div>
-        <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-widest text-gray-400">
-            <span class="w-2 h-2 bg-[#ff007f] rounded-full live-dot"></span>
-            <span>Live Global Sync</span>
+        <div class="flex items-center space-x-4">
+            <div id="xmasBadge" class="hidden items-center space-x-2 xmas-badge">
+                <i class="fa-solid fa-tree"></i>
+                <span>Christmas Mode</span>
+            </div>
+            <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-widest text-gray-400">
+                <span class="w-2 h-2 bg-[#ff007f] rounded-full live-dot"></span>
+                <span id="liveText">Live Global Sync</span>
+            </div>
         </div>
     </nav>
 
@@ -32,6 +39,9 @@
             <div class="aspect-square bg-slate-900 rounded-3xl mb-8 flex items-center justify-center border border-white/5 relative overflow-hidden">
                 <i id="disc" class="fa-solid fa-compact-disc text-8xl text-purple-500/20"></i>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <span id="jingleBadge" class="jingle-badge absolute top-3 right-3 hidden">
+                    <i class="fa-solid fa-bell"></i> Jingle
+                </span>
             </div>
             
             <div class="text-center mb-8">
@@ -43,53 +53,80 @@
                 <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
                     <div id="progress" class="bg-purple-500 h-full w-0 transition-all duration-300"></div>
                 </div>
-                <button id="playBtn" onclick="togglePlay()" class="w-20 h-20 rounded-full btn-purple flex items-center justify-center shadow-lg shadow-purple-500/20 hover:scale-105 transition active:scale-95">
-                    <i id="playIcon" class="fa-solid fa-play text-2xl ml-1"></i>
-                </button>
-                <p id="syncStatus" class="text-[10px] text-gray-600 font-mono uppercase">Not Synced</p>
+                <div class="flex items-center justify-center space-x-6">
+                    <button onclick="prevTrack()" class="text-gray-400 hover:text-white transition text-lg">
+                        <i class="fa-solid fa-backward-step"></i>
+                    </button>
+                    <button id="playBtn" onclick="togglePlay()" class="w-20 h-20 rounded-full btn-purple flex items-center justify-center shadow-lg shadow-purple-500/20 hover:scale-105 transition active:scale-95">
+                        <i id="playIcon" class="fa-solid fa-play text-2xl ml-1"></i>
+                    </button>
+                    <button onclick="nextTrack()" class="text-gray-400 hover:text-white transition text-lg">
+                        <i class="fa-solid fa-forward-step"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between w-full">
+                    <p id="syncStatus" class="text-[10px] text-gray-600 font-mono uppercase">Not Synced</p>
+                    <p id="trackIndicator" class="text-[10px] text-gray-600 font-mono uppercase"></p>
+                </div>
             </div>
         </div>
     </main>
 
     <audio id="player" crossorigin="anonymous"></audio>
+    <script src="/christmas.js"></script>
     <script>
+        let playlist = [];
+        let currentIndex = 0;
         let isPlaying = false;
         let isProcessing = false;
-        let globalOffset = 0;
+        let playingJingle = false;
         const player = document.getElementById('player');
-        
-        const API_BASE = window.location.hostname.includes('onrender.com') ? '' : 'https://radar-dance-radio.onrender.com';
+        const API_BASE = '';
 
         async function syncWithServer() {
             try {
-                const res = await fetch(`${API_BASE}/api/tracks`, { mode: 'cors', cache: 'no-cache' });
+                const res = await fetch(`${API_BASE}/api/tracks`, { cache: 'no-cache' });
                 const data = await res.json();
                 
                 if (data.tracks && data.tracks.length > 0) {
-                    const track = data.tracks[0];
-                    const trackUrl = track.url.startsWith('http') ? track.url : `${API_BASE}${track.url}`;
+                    playlist = data.tracks;
+                    currentIndex = Math.min(currentIndex, playlist.length - 1);
+                    loadTrack(currentIndex);
                     
-                    if (player.src !== trackUrl) {
-                        player.src = trackUrl;
-                        player.load();
-                    }
-                    
-                    document.getElementById('title').innerText = track.name;
-                    document.getElementById('artist').innerText = "RADAR. ON AIR";
-                    
-                    globalOffset = data.playbackOffset;
-                    document.getElementById('syncStatus').innerText = "Synced with Station";
+                    document.getElementById('syncStatus').innerText = data.scheduled 
+                        ? `Auto-broadcast: ${data.date}` 
+                        : 'Synced with Station';
+                } else {
+                    document.getElementById('title').innerText = 'Station Offline';
+                    document.getElementById('artist').innerText = 'Waiting for Signal';
+                    document.getElementById('syncStatus').innerText = 'No tracks available';
                 }
             } catch (error) {
                 console.error('Sync Error:', error);
-                document.getElementById('artist').innerText = "Connection Lost";
+                document.getElementById('artist').innerText = 'Connection Lost';
             }
+        }
+
+        function loadTrack(index) {
+            if (!playlist[index]) return;
+            const track = playlist[index];
+            player.src = track.url;
+            player.load();
+            document.getElementById('title').innerText = track.name;
+            document.getElementById('artist').innerText = 'RADAR. ON AIR';
+            document.getElementById('jingleBadge').classList.add('hidden');
+            playingJingle = false;
+            updateTrackIndicator();
+        }
+
+        function updateTrackIndicator() {
+            const el = document.getElementById('trackIndicator');
+            if (el) el.innerText = playlist.length > 0 ? `${currentIndex + 1} / ${playlist.length}` : '';
         }
 
         async function togglePlay() {
             if (isProcessing) return;
             isProcessing = true;
-
             try {
                 if (isPlaying) {
                     player.pause();
@@ -97,21 +134,13 @@
                     document.getElementById('disc').classList.remove('animate-spin-slow');
                     isPlaying = false;
                 } else {
-                    // Sync time before playback
-                    if (globalOffset > 0 && player.duration) {
-                        player.currentTime = globalOffset % player.duration; 
-                    }
-                    
-                    // The play() method returns a promise
                     await player.play();
-                    
                     document.getElementById('playIcon').className = 'fa-solid fa-pause text-2xl';
                     document.getElementById('disc').classList.add('animate-spin-slow');
                     isPlaying = true;
                 }
             } catch (e) {
-                console.error("Playback state change failed:", e);
-                // Reset UI state if playback failed
+                console.error("Playback failed:", e);
                 document.getElementById('playIcon').className = 'fa-solid fa-play text-2xl ml-1';
                 document.getElementById('disc').classList.remove('animate-spin-slow');
                 isPlaying = false;
@@ -120,6 +149,38 @@
             }
         }
 
+        function nextTrack() {
+            if (playlist.length === 0) return;
+            currentIndex = (currentIndex + 1) % playlist.length;
+            loadTrack(currentIndex);
+            if (isPlaying) player.play();
+        }
+
+        function prevTrack() {
+            if (playlist.length === 0) return;
+            currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+            loadTrack(currentIndex);
+            if (isPlaying) player.play();
+        }
+
+        player.onended = async () => {
+            if (ChristmasMode.active && !playingJingle) {
+                const jingle = ChristmasMode.getRandomJingle();
+                if (jingle) {
+                    playingJingle = true;
+                    player.src = jingle.url;
+                    player.load();
+                    document.getElementById('title').innerText = jingle.name;
+                    document.getElementById('artist').innerText = 'RADAR. JINGLE';
+                    document.getElementById('jingleBadge').classList.remove('hidden');
+                    try { await player.play(); } catch (e) { playingJingle = false; nextTrack(); }
+                    return;
+                }
+            }
+            playingJingle = false;
+            nextTrack();
+        };
+
         player.ontimeupdate = () => {
             if (player.duration) {
                 const prog = (player.currentTime / player.duration) * 100;
@@ -127,8 +188,12 @@
             }
         };
 
-        setInterval(syncWithServer, 30000);
-        window.addEventListener('load', syncWithServer);
+        window.addEventListener('load', async () => {
+            await ChristmasMode.init();
+            await syncWithServer();
+            setInterval(syncWithServer, 30000);
+            setInterval(() => ChristmasMode.sync(), 5000);
+        });
     </script>
 </body>
 </html>

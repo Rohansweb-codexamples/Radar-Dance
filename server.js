@@ -15,14 +15,41 @@ const DATA_FILE = path.join(__dirname, 'data.json');
 
 function loadData() {
     try {
-        return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    } catch {
-        return { tracks: [], schedules: {}, jingles: [], settings: { christmasMode: false } };
+        const raw = fs.readFileSync(DATA_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        // Merge with defaults so missing keys don't break anything
+        return {
+            tracks: parsed.tracks || [],
+            schedules: parsed.schedules || {},
+            jingles: parsed.jingles || [],
+            settings: parsed.settings || { christmasMode: false }
+        };
+    } catch (e) {
+        // File missing or corrupted — try the backup before giving up
+        try {
+            const backup = JSON.parse(fs.readFileSync(DATA_FILE + '.bak', 'utf8'));
+            console.error('RADAR. data.json corrupted — recovered from backup');
+            return {
+                tracks: backup.tracks || [],
+                schedules: backup.schedules || {},
+                jingles: backup.jingles || [],
+                settings: backup.settings || { christmasMode: false }
+            };
+        } catch {
+            console.error('RADAR. no data file or backup — starting fresh');
+            return { tracks: [], schedules: {}, jingles: [], settings: { christmasMode: false } };
+        }
     }
 }
 
 function saveData() {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    // Atomic write: write to temp file, then rename — prevents corruption
+    // if nodemon restarts mid-write
+    const tmp = DATA_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+    // Keep a backup of the previous good file
+    try { fs.copyFileSync(DATA_FILE, DATA_FILE + '.bak'); } catch {}
+    fs.renameSync(tmp, DATA_FILE);
 }
 
 let data = loadData();
@@ -63,6 +90,10 @@ app.post('/api/upload', upload.array('songs'), (req, res) => {
 });
 
 app.get('/api/tracks', (req, res) => {
+    // Admin requests all tracks; player gets today's scheduled set if one exists
+    if (req.query.all === 'true') {
+        return res.json({ tracks: data.tracks, scheduled: false });
+    }
     const today = new Date().toISOString().split('T')[0];
     const scheduledIds = data.schedules[today];
     if (scheduledIds && scheduledIds.length > 0) {

@@ -17,7 +17,7 @@ const AdminControls = {
     // ---- Tracks ----
     async loadTracks() {
         try {
-            const res = await fetch('/api/tracks');
+            const res = await fetch('/api/tracks?all=true');
             const data = await res.json();
             this.tracks = data.tracks || [];
         } catch { this.tracks = []; }

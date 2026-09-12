@@ -69,6 +69,6 @@
   "schedules": {},
   "jingles": [],
   "settings": {
-    "christmasMode": true
+    "christmasMode": false
   }
 }

@@ -22,13 +22,23 @@
     <header class="flex justify-between items-center mb-12">
         <div class="radar-logo text-3xl">RADAR<span class="dot">.</span> <span class="text-sm font-normal not-italic text-gray-500 ml-2">ADMIN</span></div>
         <div class="flex items-center space-x-4">
-            <button id="adminXmasToggle" class="christmas-toggle" onclick="AdminControls.toggleChristmasMode()">
-                <i class="fa-solid fa-tree"></i>
-                <span class="xmas-label">Christmas OFF</span>
-            </button>
             <a href="/" class="text-xs font-bold text-gray-400 hover:text-white transition">VIEW LIVE SITE</a>
         </div>
     </header>
+
+    <!-- Christmas Mode Control -->
+    <div class="glass p-6 rounded-[2rem] mb-8 flex items-center justify-between">
+        <div>
+            <h2 class="text-xl font-bold flex items-center">
+                <i class="fa-solid fa-tree mr-3 text-green-400"></i> Christmas Mode
+            </h2>
+            <p class="text-xs text-gray-500 mt-1">Turn on to activate festive lights, snow, jingles & decorations on the live player</p>
+        </div>
+        <button id="adminXmasToggle" class="christmas-toggle" onclick="AdminControls.toggleChristmasMode()">
+            <i class="fa-solid fa-tree"></i>
+            <span class="xmas-label">Christmas OFF</span>
+        </button>
+    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <!-- Upload Section -->

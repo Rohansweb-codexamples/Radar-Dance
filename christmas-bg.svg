@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#061226"/>
+      <stop offset="45%" stop-color="#0a1f2e"/>
+      <stop offset="100%" stop-color="#0d2818"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#fff8e0" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#fff8e0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#sky)"/>
+
+  <!-- Stars -->
+  <g fill="#ffffff">
+    <circle cx="80" cy="60" r="1.5" opacity="0.8"/>
+    <circle cx="200" cy="100" r="1" opacity="0.6"/>
+    <circle cx="350" cy="50" r="1.5" opacity="0.9"/>
+    <circle cx="500" cy="90" r="1" opacity="0.5"/>
+    <circle cx="650" cy="40" r="1.5" opacity="0.7"/>
+    <circle cx="800" cy="80" r="1" opacity="0.6"/>
+    <circle cx="1100" cy="100" r="1" opacity="0.5"/>
+    <circle cx="150" cy="180" r="1" opacity="0.4"/>
+    <circle cx="400" cy="200" r="1" opacity="0.5"/>
+    <circle cx="700" cy="170" r="1" opacity="0.4"/>
+    <circle cx="1000" cy="190" r="1" opacity="0.5"/>
+    <circle cx="250" cy="250" r="0.8" opacity="0.3"/>
+    <circle cx="550" cy="280" r="0.8" opacity="0.3"/>
+    <circle cx="850" cy="260" r="0.8" opacity="0.3"/>
+    <circle cx="120" cy="320" r="0.8" opacity="0.25"/>
+    <circle cx="620" cy="350" r="0.8" opacity="0.25"/>
+  </g>
+
+  <!-- Moon -->
+  <circle cx="950" cy="150" r="60" fill="url(#moonGlow)"/>
+  <circle cx="950" cy="150" r="30" fill="#fff8e0" opacity="0.85"/>
+  <circle cx="940" cy="140" r="8" fill="#e8e0c0" opacity="0.3"/>
+  <circle cx="960" cy="158" r="5" fill="#e8e0c0" opacity="0.3"/>
+
+  <!-- Distant hills -->
+  <path d="M0 550 Q300 480 600 520 T1200 500 L1200 800 L0 800 Z" fill="#0a2010" opacity="0.5"/>
+
+  <!-- Snow ground -->
+  <path d="M0 600 Q200 570 400 590 T800 580 T1200 590 L1200 800 L0 800 Z" fill="#ffffff" opacity="0.07"/>
+
+  <!-- Christmas trees -->
+  <g opacity="0.13">
+    <g transform="translate(100, 500)">
+      <rect x="-3" y="80" width="6" height="20" fill="#3a2010"/>
+      <polygon points="0,-40 30,30 -30,30" fill="#0d4d1a"/>
+      <polygon points="0,-10 25,40 -25,40" fill="#0d4d1a"/>
+      <polygon points="0,20 20,60 -20,60" fill="#0d4d1a"/>
+    </g>
+    <g transform="translate(250, 520)">
+      <rect x="-3" y="70" width="6" height="18" fill="#3a2010"/>
+      <polygon points="0,-35 25,25 -25,25" fill="#0d4d1a"/>
+      <polygon points="0,-5 22,35 -22,35" fill="#0d4d1a"/>
+      <polygon points="0,25 18,55 -18,55" fill="#0d4d1a"/>
+    </g>
+    <g transform="translate(1050, 510)">
+      <rect x="-3" y="75" width="6" height="18" fill="#3a2010"/>
+      <polygon points="0,-38 28,28 -28,28" fill="#0d4d1a"/>
+      <polygon points="0,-8 24,38 -24,38" fill="#0d4d1a"/>
+      <polygon points="0,22 20,58 -20,58" fill="#0d4d1a"/>
+    </g>
+    <g transform="translate(900, 540)">
+      <rect x="-2" y="55" width="4" height="14" fill="#3a2010"/>
+      <polygon points="0,-25 18,18 -18,18" fill="#0d4d1a"/>
+      <polygon points="0,0 16,30 -16,30" fill="#0d4d1a"/>
+    </g>
+  </g>
+
+  <!-- Snow caps -->
+  <g fill="#ffffff" opacity="0.12">
+    <circle cx="100" cy="460" r="3"/>
+    <circle cx="250" cy="485" r="2.5"/>
+    <circle cx="1050" cy="472" r="3"/>
+    <circle cx="900" cy="515" r="2"/>
+  </g>
+</svg>
